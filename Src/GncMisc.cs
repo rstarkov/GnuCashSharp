@@ -58,18 +58,76 @@ namespace GnuCashSharp
         public static string Vendor(string name) { return "{http://www.gnucash.org/XML/vendor}" + name; }
     }
 
-    public static class GncUtil
+    public struct DateInterval: IEquatable<DateInterval>
     {
-        public static decimal ToGncDecimal(this string value)
+        private DateTime _start;
+        private DateTime _end;
+
+        public DateInterval(DateTime start, DateTime end)
         {
-            decimal res;
-            if (decimal.TryParse(value, out res))
-                return res;
-            string[] parts = value.Split('/');
-            if (parts.Length != 2)
-                throw new GncException("Cannot parse Gnc Numeric value: \"{0}\"", value);
-            try { return decimal.Parse(parts[0]) / decimal.Parse(parts[1]); }
-            catch { throw new GncException("Cannot parse Gnc Numeric value: \"{0}\"", value); }
+            _start = new DateTime(start.Year, start.Month, start.Day);
+            _end = new DateTime(end.Year, end.Month, end.Day);
+        }
+
+        public DateInterval(int startYear, int startMonth, int startDay, int endYear, int endMonth, int endDay)
+        {
+            _start = new DateTime(startYear, startMonth, startDay);
+            _end = new DateTime(endYear, endMonth, endDay);
+        }
+
+        public DateTime Start
+        {
+            get { return _start; }
+        }
+
+        public DateTime End
+        {
+            get { return _end; }
+        }
+
+        public override int GetHashCode()
+        {
+            int c1 = _start.GetHashCode();
+            int c2 = _end.GetHashCode();
+            return unchecked(c1 * 37 + c2);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is DateInterval)
+                return Equals((DateInterval)obj);
+            else
+                return base.Equals(obj);
+        }
+
+        public bool Equals(DateInterval other)
+        {
+            return this._start == other._start && this._end == other._end;
+        }
+
+        public override string ToString()
+        {
+            return _start.ToString("yyyy-MM-dd") + ".." + _end.ToString("yyyy-MM-dd");
+        }
+
+        public IEnumerable<DateInterval> EnumMonths()
+        {
+            DateTime from = _start;
+            DateTime to = _end;
+            while (from <= to)
+            {
+                DateTime periodTo = from.AddDays(35);
+                periodTo = new DateTime(periodTo.Year, periodTo.Month, 1).AddDays(-1);
+                yield return new DateInterval(from, periodTo);
+                from = periodTo.AddDays(1);
+            }
+        }
+
+        public bool Contains(DateTime date)
+        {
+            return date.Day >= _start.Day && date.Day <= _end.Day
+                && date.Month >= _start.Month && date.Month <= _end.Month
+                && date.Year >= _start.Year && date.Year <= _end.Year;
         }
     }
 }

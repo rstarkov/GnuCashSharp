@@ -57,6 +57,7 @@
     <Compile Include="GncSession.cs" />
     <Compile Include="GncSplit.cs" />
     <Compile Include="GncTransaction.cs" />
+    <Compile Include="GncUtil.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

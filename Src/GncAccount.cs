@@ -93,5 +93,23 @@ namespace GnuCashSharp
             foreach (var split in Book.AccountEnumSplits(this))
                 yield return split;
         }
+
+        public decimal GetTotalDebit(DateInterval interval)
+        {
+            decimal total = 0;
+            foreach (var split in EnumSplits().Where(spl => interval.Contains(spl.Transaction.DatePosted)))
+                if (split.Value > 0)
+                    total += split.Value;
+            return total;
+        }
+
+        public decimal GetTotalCredit(DateInterval interval)
+        {
+            decimal total = 0;
+            foreach (var split in EnumSplits().Where(spl => interval.Contains(spl.Transaction.DatePosted)))
+                if (split.Value < 0)
+                    total -= split.Value;
+            return total;
+        }
     }
 }
