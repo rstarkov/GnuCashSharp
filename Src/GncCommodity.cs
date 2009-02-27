@@ -13,11 +13,15 @@ namespace GnuCashSharp
         private string _identifier;
         private string _space;
         private string _name;
+        private GncTimeSeries _exrate;
 
         public GncCommodity(GncBook book)
         {
             _book = book;
             _identifier = null;
+            _space = null;
+            _name = null;
+            _exrate = new GncTimeSeries();
         }
 
         public GncCommodity(GncBook book, XElement xml)
@@ -25,7 +29,7 @@ namespace GnuCashSharp
         {
             _space = xml.ChkElement(GncName.Cmdty("space")).Value;
             _name = xml.ChkElement(GncName.Cmdty("id")).Value;
-            _identifier = _space + ":" + _name;
+            _identifier = MakeIdentifier(_space, _name);
         }
 
         public GncBook Book
@@ -46,6 +50,34 @@ namespace GnuCashSharp
         public string Name
         {
             get { return _name; }
+        }
+
+        /// <summary>
+        /// Gets the time series of the exchange rate of this currency into the
+        /// book's base currency. The rate is the value of 1 unit of commodity
+        /// in terms of the base currency.
+        /// </summary>
+        public GncTimeSeries ExRate
+        {
+            get { return _exrate; }
+        }
+
+        public bool IsBaseCurrency
+        {
+            get { return _identifier == _book.BaseCurrencyId; }
+        }
+
+        public static string MakeIdentifier(XElement xml)
+        {
+            if (xml == null)
+                return null;
+            else
+                return MakeIdentifier(xml.ChkElement(GncName.Cmdty("space")).Value, xml.ChkElement(GncName.Cmdty("id")).Value);
+        }
+
+        public static string MakeIdentifier(string space, string name)
+        {
+            return space == "ISO4217" ? name : (space + ":" + name);
         }
     }
 }

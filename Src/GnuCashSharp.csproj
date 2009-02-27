@@ -50,12 +50,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="GncAccount.cs" />
+    <Compile Include="GncAmount.cs" />
     <Compile Include="GncBook.cs" />
     <Compile Include="GncCommodity.cs" />
     <Compile Include="GncException.cs" />
     <Compile Include="GncMisc.cs" />
     <Compile Include="GncSession.cs" />
     <Compile Include="GncSplit.cs" />
+    <Compile Include="GncTimeSeries.cs" />
     <Compile Include="GncTransaction.cs" />
     <Compile Include="GncUtil.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

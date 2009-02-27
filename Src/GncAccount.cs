@@ -36,9 +36,7 @@ namespace GnuCashSharp
             _name = xml.ChkElement(GncName.Act("name")).Value;
             _guid = xml.ChkElement(GncName.Act("id")).Value;
             _parentGuid = xml.ValueOrDefault(GncName.Act("parent"), (string)null);
-            var tmpXml = xml.Element(GncName.Act("commodity"));
-            if (tmpXml != null)
-                _commodity = tmpXml.ChkElement(GncName.Cmdty("space")).Value + ":" + tmpXml.ChkElement(GncName.Cmdty("id")).Value;
+            _commodity = GncCommodity.MakeIdentifier(xml.Element(GncName.Act("commodity")));
             _description = xml.ValueOrDefault(GncName.Act("description"), (string)null);
         }
 
@@ -94,22 +92,46 @@ namespace GnuCashSharp
                 yield return split;
         }
 
-        public decimal GetTotalDebit(DateInterval interval)
+        public decimal GetTotalDebit(DateInterval interval, bool includeSubaccts)
         {
             decimal total = 0;
             foreach (var split in EnumSplits().Where(spl => interval.Contains(spl.Transaction.DatePosted)))
                 if (split.Value > 0)
                     total += split.Value;
+            if (includeSubaccts)
+            {
+                foreach (var subacct in EnumChildren())
+                    total += subacct.GetTotalDebit(interval, true);
+            }
             return total;
         }
 
-        public decimal GetTotalCredit(DateInterval interval)
+        public decimal GetTotalCredit(DateInterval interval, bool includeSubaccts)
         {
             decimal total = 0;
             foreach (var split in EnumSplits().Where(spl => interval.Contains(spl.Transaction.DatePosted)))
                 if (split.Value < 0)
                     total -= split.Value;
+            if (includeSubaccts)
+            {
+                foreach (var subacct in EnumChildren())
+                    total += subacct.GetTotalCredit(interval, true);
+            }
             return total;
         }
+
+        public decimal GetTotal(DateInterval interval, bool includeSubaccts, GncCommodity cmdty)
+        {
+            decimal total = 0;
+            foreach (var split in EnumSplits().Where(spl => interval.Contains(spl.Transaction.DatePosted)))
+                total += split.Amount.ConvertTo(cmdty).Quantity;
+            if (includeSubaccts)
+            {
+                foreach (var subacct in EnumChildren())
+                    total += subacct.GetTotal(interval, true, cmdty);
+            }
+            return total;
+        }
+
     }
 }

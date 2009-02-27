@@ -25,6 +25,15 @@ namespace GnuCashSharp
         Chk,
     }
 
+    public enum GncInterpolation
+    {
+        None,
+        Nearest,
+        NearestBefore,
+        NearestAfter,
+        Linear,
+    }
+
     public static class GncName
     {
         public static string Gnc(string name) { return "{http://www.gnucash.org/XML/gnc}" + name; }

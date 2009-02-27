@@ -11,6 +11,7 @@ namespace GnuCashSharp
     {
         private Dictionary<string, GncBook> _books;
         private GncBook _book;
+        private List<string> _warnings = new List<string>();
 
         public void Clear()
         {
@@ -18,7 +19,7 @@ namespace GnuCashSharp
             _book = null;
         }
 
-        public void LoadFromFile(string file)
+        public void LoadFromFile(string file, string baseCurrency)
         {
             Clear();
             XDocument doc;
@@ -29,7 +30,7 @@ namespace GnuCashSharp
 
             foreach (var el in doc.Root.Elements(GncName.Gnc("book")))
             {
-                GncBook book = new GncBook(this, el);
+                GncBook book = new GncBook(this, el, baseCurrency);
                 _books.Add(book.Guid, book);
                 if (Book == null)
                     _book = book;
@@ -41,6 +42,22 @@ namespace GnuCashSharp
         public GncBook Book
         {
             get { return _book; }
+        }
+
+        public void Warn(string warning)
+        {
+            _warnings.Add(warning);
+        }
+
+        public IEnumerable<string> EnumWarnings()
+        {
+            foreach (var warning in _warnings)
+                yield return warning;
+        }
+
+        public void ClearWarnings()
+        {
+            _warnings.Clear();
         }
     }
 }

@@ -31,8 +31,8 @@ namespace GnuCashSharp
             : this(book)
         {
             _guid = xml.ChkElement(GncName.Trn("id")).Value;
-            _datePosted = DateTimeOffset.Parse(xml.ChkElement(GncName.Trn("date-posted")).Value).Date;
-            _dateEntered = DateTimeOffset.Parse(xml.ChkElement(GncName.Trn("date-posted")).Value);
+            _datePosted = DateTimeOffset.Parse(xml.ChkElement(GncName.Trn("date-posted")).ChkElement(GncName.Ts("date")).Value).Date;
+            _dateEntered = DateTimeOffset.Parse(xml.ChkElement(GncName.Trn("date-entered")).ChkElement(GncName.Ts("date")).Value);
             _description = xml.ChkElement(GncName.Trn("description")).Value;
             foreach (var el in xml.ChkElement(GncName.Trn("splits")).Elements(GncName.Trn("split")))
             {

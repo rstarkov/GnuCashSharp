@@ -9,6 +9,14 @@ namespace GnuCashSharp
 {
     public class GncSplit
     {
+        private GncTransaction _transaction;
+        private string _guid;
+        private GncReconciled _reconciled;
+        private decimal _value;
+        private decimal _quantity;
+        private string _accountGuid;
+        private string _memo;
+
         public GncSplit(GncTransaction transaction)
         {
             _transaction = transaction;
@@ -31,46 +39,60 @@ namespace GnuCashSharp
             _memo = xml.ValueOrDefault(GncName.Split("memo"), (string)null);
         }
 
-        private GncTransaction _transaction;
         public GncTransaction Transaction
         {
             get { return _transaction; }
         }
 
-        private string _guid;
         public string Guid
         {
             get { return _guid; }
         }
 
-        private GncReconciled _reconciled;
         public GncReconciled Reconciled
         {
             get { return _reconciled; }
         }
 
-        private decimal _value;
+        /// <summary>
+        /// Amount of change in transaction's currency.
+        /// </summary>
         public decimal Value
         {
             get { return _value; }
         }
 
-        private decimal _quantity;
+        /// <summary>
+        /// Amount of change in the destination account's currency.
+        /// </summary>
         public decimal Quantity
         {
             get { return _quantity; }
         }
 
-        private string _accountGuid;
         public string AccountGuid
         {
             get { return _accountGuid; }
         }
 
-        private string _memo;
+        public GncAccount Account
+        {
+            get { return _transaction.Book.GetAccount(_accountGuid); }
+        }
+
+        public GncCommodity Commodity
+        {
+            get { return _transaction.Book.GetCommodity(Account.Commodity); }
+        }
+
         public string Memo
         {
             get { return _memo; }
+        }
+
+        public GncAmount Amount
+        {
+            get { return new GncAmount(_quantity, Commodity, _transaction.DatePosted.ToUniversalTime()); }
         }
 
         public string ReadableDescAndMemo
