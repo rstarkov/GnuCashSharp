@@ -191,5 +191,13 @@ namespace GnuCashSharp
             }
             return cur;
         }
+
+        public DateTime EarliestDate
+        {
+            get
+            {
+                return _transactions.Values.Select(trn => trn.DatePosted).Min();
+            }
+        }
     }
 }

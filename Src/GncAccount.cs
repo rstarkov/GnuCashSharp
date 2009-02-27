@@ -80,6 +80,11 @@ namespace GnuCashSharp
             get { return _description; }
         }
 
+        public GncAccount Parent
+        {
+            get { return _book.GetAccount(_parentGuid); }
+        }
+
         public IEnumerable<GncAccount> EnumChildren()
         {
             foreach (var child in Book.AccountEnumChildren(this))
@@ -133,5 +138,16 @@ namespace GnuCashSharp
             return total;
         }
 
+        public string Path(string separator)
+        {
+            StringBuilder sb = new StringBuilder(_name);
+            var acct = this.Parent;
+            while (acct != _book.AccountRoot)
+            {
+                sb.Insert(0, acct.Name + separator);
+                acct = acct.Parent;
+            }
+            return sb.ToString();
+        }
     }
 }
