@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 using RT.Util.ExtensionMethods;
+using System.IO.Compression;
+using System.IO;
 
 namespace GnuCashSharp
 {
@@ -23,8 +25,19 @@ namespace GnuCashSharp
         {
             Clear();
             XDocument doc;
-            try { doc = XDocument.Load(file); }
-            catch (Exception E) { throw new GncException("Cannot parse XML file: " + E.Message); }
+            try
+            {
+                GZipStream gz = new GZipStream(File.Open(file, FileMode.Open, FileAccess.Read, FileShare.Read), CompressionMode.Decompress);
+                StreamReader sr = new StreamReader(gz);
+                doc = XDocument.Load(sr);
+                sr.Close();
+            }
+            catch
+            {
+                try { doc = XDocument.Load(file); }
+                catch (Exception E) { throw new GncException("Cannot parse XML file: " + E.Message); }
+            }
+
             if (doc.Root.Name != "gnc-v2")
                 throw new GncException("Cannot load file: root node name is not \"gnc-v2\"");
 

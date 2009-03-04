@@ -149,5 +149,17 @@ namespace GnuCashSharp
             }
             return sb.ToString();
         }
+
+        public List<GncAccount> PathAsList()
+        {
+            var result = new List<GncAccount>();
+            var acct = this;
+            while (acct != _book.AccountRoot)
+            {
+                result.Insert(0, acct);
+                acct = acct.Parent;
+            }
+            return result;
+        }
     }
 }
