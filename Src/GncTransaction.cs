@@ -8,12 +8,13 @@ using RT.Util;
 
 namespace GnuCashSharp
 {
-    public class GncTransaction
+    public class GncTransaction: IComparable<GncTransaction>
     {
         private GncBook _book;
         private string _guid;
         private DateTime _datePosted;
         private DateTimeOffset _dateEntered;
+        private int _num;
         private string _description;
         private Dictionary<string, GncSplit> _splits;
 
@@ -23,6 +24,7 @@ namespace GnuCashSharp
             _guid = null;
             _datePosted = new DateTime();
             _dateEntered = new DateTimeOffset();
+            _num = 0;
             _description = null;
             _splits = new Dictionary<string, GncSplit>();
         }
@@ -33,6 +35,7 @@ namespace GnuCashSharp
             _guid = xml.ChkElement(GncName.Trn("id")).Value;
             _datePosted = DateTimeOffset.Parse(xml.ChkElement(GncName.Trn("date-posted")).ChkElement(GncName.Ts("date")).Value).Date;
             _dateEntered = DateTimeOffset.Parse(xml.ChkElement(GncName.Trn("date-entered")).ChkElement(GncName.Ts("date")).Value);
+            _num = xml.ValueOrDefault(GncName.Trn("num"), 0);
             _description = xml.ChkElement(GncName.Trn("description")).Value;
             foreach (var el in xml.ChkElement(GncName.Trn("splits")).Elements(GncName.Trn("split")))
             {
@@ -61,6 +64,11 @@ namespace GnuCashSharp
             get { return _dateEntered; }
         }
 
+        public int Num
+        {
+            get { return _num; }
+        }
+
         public string Description
         {
             get { return _description; }
@@ -75,6 +83,15 @@ namespace GnuCashSharp
         {
             foreach (var split in _splits.Values)
                 yield return split;
+        }
+
+        public int CompareTo(GncTransaction other)
+        {
+            int res = this._datePosted.CompareTo(other._datePosted);
+            if (res != 0)
+                return res;
+            res = this._num.CompareTo(other._num);
+            return res;
         }
     }
 }

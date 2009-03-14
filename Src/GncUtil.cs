@@ -19,5 +19,15 @@ namespace GnuCashSharp
             try { return decimal.Parse(parts[0]) / decimal.Parse(parts[1]); }
             catch { throw new GncException("Cannot parse Gnc Numeric value: \"{0}\"", value); }
         }
+
+        /// <summary>
+        /// GnuCash stores dates in a fucked up format: it stores the date,
+        /// the time set to all zeroes, and a time zone offset. This function
+        /// parses such a string into a Date-only DateTime of kind UTC.
+        /// </summary>
+        public static DateTime ParseGncDate(string value)
+        {
+            return new DateTime(DateTimeOffset.Parse(value).Date.Ticks, DateTimeKind.Utc);
+        }
     }
 }

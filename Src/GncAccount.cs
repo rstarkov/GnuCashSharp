@@ -85,50 +85,51 @@ namespace GnuCashSharp
             get { return _book.GetAccount(_parentGuid); }
         }
 
+        /// <summary>
+        /// The depth of the root account is 0. The depth of its immediate children is 1. Etc.
+        /// </summary>
+        public int Depth
+        {
+            get
+            {
+                int depth = 0;
+                var acct = this;
+                while (acct.Parent != null)
+                {
+                    depth++;
+                    acct = acct.Parent;
+                }
+                return depth;
+            }
+        }
+
         public IEnumerable<GncAccount> EnumChildren()
         {
             foreach (var child in Book.AccountEnumChildren(this))
                 yield return child;
         }
 
-        public IEnumerable<GncSplit> EnumSplits()
+        public IEnumerable<GncSplit> EnumSplits(bool subAccts)
         {
-            foreach (var split in Book.AccountEnumSplits(this))
-                yield return split;
-        }
-
-        public decimal GetTotalDebit(DateInterval interval, bool includeSubaccts)
-        {
-            decimal total = 0;
-            foreach (var split in EnumSplits().Where(spl => interval.Contains(spl.Transaction.DatePosted)))
-                if (split.Value > 0)
-                    total += split.Value;
-            if (includeSubaccts)
+            if (subAccts)
             {
-                foreach (var subacct in EnumChildren())
-                    total += subacct.GetTotalDebit(interval, true);
+                foreach (var split in Book.AccountEnumSplits(this))
+                    yield return split;
+                foreach (var acct in EnumChildren())
+                    foreach (var split in acct.EnumSplits(true))
+                        yield return split;
             }
-            return total;
-        }
-
-        public decimal GetTotalCredit(DateInterval interval, bool includeSubaccts)
-        {
-            decimal total = 0;
-            foreach (var split in EnumSplits().Where(spl => interval.Contains(spl.Transaction.DatePosted)))
-                if (split.Value < 0)
-                    total -= split.Value;
-            if (includeSubaccts)
+            else
             {
-                foreach (var subacct in EnumChildren())
-                    total += subacct.GetTotalCredit(interval, true);
+                foreach (var split in Book.AccountEnumSplits(this))
+                    yield return split;
             }
-            return total;
         }
 
         public decimal GetTotal(DateInterval interval, bool includeSubaccts, GncCommodity cmdty)
         {
             decimal total = 0;
-            foreach (var split in EnumSplits().Where(spl => interval.Contains(spl.Transaction.DatePosted)))
+            foreach (var split in EnumSplits(false).Where(spl => interval.Contains(spl.Transaction.DatePosted)))
                 total += split.Amount.ConvertTo(cmdty).Quantity;
             if (includeSubaccts)
             {
@@ -140,6 +141,8 @@ namespace GnuCashSharp
 
         public string Path(string separator)
         {
+            if (this == _book.AccountRoot)
+                return "";
             StringBuilder sb = new StringBuilder(_name);
             var acct = this.Parent;
             while (acct != _book.AccountRoot)
@@ -152,9 +155,14 @@ namespace GnuCashSharp
 
         public List<GncAccount> PathAsList()
         {
+            return PathAsList(_book.AccountRoot);
+        }
+
+        public List<GncAccount> PathAsList(GncAccount acctBase)
+        {
             var result = new List<GncAccount>();
             var acct = this;
-            while (acct != _book.AccountRoot)
+            while (acct != acctBase)
             {
                 result.Insert(0, acct);
                 acct = acct.Parent;

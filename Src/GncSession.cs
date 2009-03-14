@@ -14,6 +14,7 @@ namespace GnuCashSharp
         private Dictionary<string, GncBook> _books;
         private GncBook _book;
         private List<string> _warnings = new List<string>();
+        private DateTime _modifiedTimestamp;
 
         public void Clear()
         {
@@ -25,6 +26,9 @@ namespace GnuCashSharp
         {
             Clear();
             XDocument doc;
+
+            _modifiedTimestamp = File.GetLastWriteTimeUtc(file);
+
             try
             {
                 GZipStream gz = new GZipStream(File.Open(file, FileMode.Open, FileAccess.Read, FileShare.Read), CompressionMode.Decompress);
@@ -55,6 +59,11 @@ namespace GnuCashSharp
         public GncBook Book
         {
             get { return _book; }
+        }
+
+        public DateTime ModifiedTimestamp
+        {
+            get { return _modifiedTimestamp; }
         }
 
         public void Warn(string warning)

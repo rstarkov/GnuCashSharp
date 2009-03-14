@@ -63,8 +63,9 @@ namespace GnuCashSharp
                 {
                     var cmdty = new GncCommodity(null, priceXml.ChkElement(GncName.Price("commodity")));
                     var ccy = new GncCommodity(null, priceXml.ChkElement(GncName.Price("currency")));
-                    DateTime timepoint = DateTimeOffset.Parse(priceXml.ChkElement(GncName.Price("time")).ChkElement(GncName.Ts("date")).Value).Date.ToUniversalTime();
+                    DateTime timepoint = GncUtil.ParseGncDate(priceXml.ChkElement(GncName.Price("time")).ChkElement(GncName.Ts("date")).Value);
                     decimal value = priceXml.ChkElement(GncName.Price("value")).Value.ToGncDecimal();
+                    string source = priceXml.ChkElement(GncName.Price("source")).Value;
 
                     if (cmdty.Identifier == _baseCurrencyId)
                     {
@@ -74,11 +75,12 @@ namespace GnuCashSharp
                     {
                         _commodities[cmdty.Identifier].ExRate[timepoint] = value;
                     }
-                    else
+                    else if (source != "user:xfer-dialog")
                     {
                         // Ignore and warn
-                        _session.Warn("Ignoring commodity price {0}/{1} as it is not linked to the base currency ({2})".Fmt(cmdty.Identifier, ccy.Identifier, _baseCurrencyId));
+                        _session.Warn("Ignoring commodity price {0}/{1}, on {3}, source {4}, as it is not linked to the base currency ({2})".Fmt(cmdty.Identifier, ccy.Identifier, _baseCurrencyId, timepoint.ToShortDateString(), source));
                     }
+                    // Otherwise just ignore completely
                 }
                 // Always add 1.0 to the base currency ExRate curve to make it more like the others
                 _commodities[_baseCurrencyId].ExRate[new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc)] = 1;
@@ -136,7 +138,10 @@ namespace GnuCashSharp
 
         public GncAccount GetAccount(string guid)
         {
-            return _accounts[guid];
+            if (guid == null)
+                return null;
+            else
+                return _accounts[guid];
         }
 
         public GncAccount AccountRoot
@@ -148,6 +153,11 @@ namespace GnuCashSharp
         {
             get { return _baseCurrencyId; }
             set { _baseCurrencyId = value; }
+        }
+
+        public GncCommodity BaseCurrency
+        {
+            get { return GetCommodity(_baseCurrencyId); }
         }
 
         public IEnumerable<GncAccount> AccountEnumChildren(GncAccount acct)
