@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Xml.Linq;
-using RT.Util.ExtensionMethods;
 using RT.Util;
+using RT.Util.ExtensionMethods;
 
 namespace GnuCashSharp
 {
@@ -19,7 +18,7 @@ namespace GnuCashSharp
         private Dictionary<string, GncCommodity> _commodities;
         private string _baseCurrencyId;
 
-        private Dictionary<string, List<string>> _cacheAccountSplits;
+        private Dictionary<string, LinkedList<string>> _cacheAccountSplits;
         private Dictionary<string, List<string>> _cacheAccountChildren;
 
         public GncBook(GncSession session, string baseCurrency)
@@ -86,11 +85,13 @@ namespace GnuCashSharp
                 _commodities[_baseCurrencyId].ExRate[new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc)] = 1;
             }
 
-            RebuildCacheAccountChildren();
-            RebuildCacheAccountSplits();
+            rebuildCacheAccountChildren();
+            rebuildCacheAccountSplits();
+            rebuildCacheAccountAllBalances();
+            verifyBalsnaps();
         }
 
-        internal void RebuildCacheAccountChildren()
+        internal void rebuildCacheAccountChildren()
         {
             _cacheAccountChildren = new Dictionary<string, List<string>>();
             _accountRoot = null;
@@ -112,16 +113,89 @@ namespace GnuCashSharp
             }
         }
 
-        internal void RebuildCacheAccountSplits()
+        internal void rebuildCacheAccountSplits()
         {
-            _cacheAccountSplits = new Dictionary<string, List<string>>();
-            foreach (var trans in _transactions.Values)
+            _cacheAccountSplits = new Dictionary<string, LinkedList<string>>();
+
+            foreach (var trans in _transactions.Values.Order())
             {
                 foreach (var split in trans.EnumSplits())
                 {
                     if (!_cacheAccountSplits.ContainsKey(split.AccountGuid))
-                        _cacheAccountSplits.Add(split.AccountGuid, new List<string>());
-                    _cacheAccountSplits[split.AccountGuid].Add(split.Guid);
+                        _cacheAccountSplits.Add(split.AccountGuid, new LinkedList<string>());
+                    _cacheAccountSplits[split.AccountGuid].AddLast(split.Guid);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Rebuilds the account balance cache for every account, forcefully.
+        /// </summary>
+        internal void rebuildCacheAccountAllBalances()
+        {
+            foreach (var acctSplitGuids in _cacheAccountSplits.Values)
+                rebuildCacheAccountBalance(acctSplitGuids.Last.Value, true);
+        }
+
+        /// <summary>
+        /// Rebuilds the account balance cache, stored inside the GncSplits, so as
+        /// to obtain the balance after the specified split. Only rebuilds as much
+        /// as is necessary.
+        /// </summary>
+        /// <param name="splitGuid">The GUID of the split to be calculated.</param>
+        /// <param name="force">If true, previous cached values will be disregarded.</param>
+        internal void rebuildCacheAccountBalance(string splitGuid, bool force)
+        {
+            var splits = _cacheAccountSplits[_splits[splitGuid].AccountGuid];
+            LinkedListNode<string> curnode = null;
+
+            // If necessary find the first node which we have a cached value for
+            if (!force)
+            {
+                curnode = splits.Find(splitGuid);
+                while (curnode != null && _splits[curnode.Value]._cacheBalance == decimal.MinValue)
+                    curnode = curnode.Previous;
+            }
+
+            // Compute the balance from there forwards, up to the specified split
+            decimal balance = curnode == null ? 0 : _splits[curnode.Value]._cacheBalance;
+            if (curnode == null)
+                curnode = splits.First;
+            else
+                curnode = curnode.Next;
+            while (true)
+            {
+                var curGuid = curnode.Value;
+                balance += _splits[curGuid].Quantity;
+                _splits[curGuid]._cacheBalance = balance;
+                if (curGuid == splitGuid)
+                    break;
+                curnode = curnode.Next;
+            }
+        }
+
+        /// <summary>
+        /// Verifies whether all balsnaps match the actual account balance. Issues warnings about
+        /// any mismatch, as well as about balsnaps that cannot be parsed correctly.
+        /// </summary>
+        internal void verifyBalsnaps()
+        {
+            foreach (var split in _splits.Values)
+            {
+                if (!split.IsBalsnap)
+                    continue;
+
+                try
+                {
+                    decimal balsnap = split.Balsnap;
+                    if (balsnap != split.AccountBalanceAfter)
+                        _session.Warn("Balance snapshot not correct in account \"{0}\", date \"{1}\": snapshot is {2} but actual balance is {3}".Fmt(
+                            split.Account.Path(":"), split.Transaction.DatePosted, balsnap, split.AccountBalanceAfter));
+                }
+                catch (GncBalsnapParseException e)
+                {
+                    _session.Warn("Could not parse balance snapshot in account \"{0}\", date \"{1}\", value \"{2}\"".Fmt(
+                        split.Account.Path(":"), split.Transaction.DatePosted, e.OffendingValue));
                 }
             }
         }
@@ -200,6 +274,11 @@ namespace GnuCashSharp
                 catch { throw new RTException("Account not found: \"{0}\", while retrieving \"{1}\".".Fmt(next, path)); }
             }
             return cur;
+        }
+
+        public GncSplit GetSplit(string guid)
+        {
+            return _splits[guid];
         }
 
         public DateTime EarliestDate

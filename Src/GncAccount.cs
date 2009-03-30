@@ -21,13 +21,6 @@ namespace GnuCashSharp
         public GncAccount(GncBook book)
         {
             _book = book;
-            _name = null;
-            _guid = null;
-            _parentGuid = null;
-            _type = GncAccountType.UNKNOWN;
-            _commodity = null;
-            _commodityScu = 0;
-            _description = null;
         }
 
         public GncAccount(GncBook book, XElement xml)
@@ -109,11 +102,16 @@ namespace GnuCashSharp
                 yield return child;
         }
 
+        /// <summary>
+        /// Enumerates all splits in this account, and optionally, in subaccounts.
+        /// The splits will be ordered correctly if only this account's splits are
+        /// enumerated.
+        /// </summary>
         public IEnumerable<GncSplit> EnumSplits(bool subAccts)
         {
             if (subAccts)
             {
-                foreach (var split in Book.AccountEnumSplits(this))
+                foreach (var split in _book.AccountEnumSplits(this))
                     yield return split;
                 foreach (var acct in EnumChildren())
                     foreach (var split in acct.EnumSplits(true))
@@ -121,7 +119,7 @@ namespace GnuCashSharp
             }
             else
             {
-                foreach (var split in Book.AccountEnumSplits(this))
+                foreach (var split in _book.AccountEnumSplits(this))
                     yield return split;
             }
         }

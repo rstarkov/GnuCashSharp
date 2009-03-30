@@ -91,6 +91,9 @@ namespace GnuCashSharp
             if (res != 0)
                 return res;
             res = this._num.CompareTo(other._num);
+            if (res != 0)
+                return res;
+            res = this._dateEntered.CompareTo(other._dateEntered);
             return res;
         }
     }

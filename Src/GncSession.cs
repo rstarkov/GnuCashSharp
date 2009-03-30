@@ -15,6 +15,7 @@ namespace GnuCashSharp
         private GncBook _book;
         private List<string> _warnings = new List<string>();
         private DateTime _modifiedTimestamp;
+        private string _balsnapPrefix;
 
         public void Clear()
         {
@@ -22,9 +23,11 @@ namespace GnuCashSharp
             _book = null;
         }
 
-        public void LoadFromFile(string file, string baseCurrency)
+        public void LoadFromFile(string file, string baseCurrency, string balsnapPrefix)
         {
             Clear();
+            _balsnapPrefix = balsnapPrefix;
+
             XDocument doc;
 
             _modifiedTimestamp = File.GetLastWriteTimeUtc(file);
@@ -54,6 +57,11 @@ namespace GnuCashSharp
                 else
                     throw new GncException("Multiple books in the file; this is currently entirely untested.");
             }
+        }
+
+        public string BalsnapPrefix
+        {
+            get { return _balsnapPrefix; }
         }
 
         public GncBook Book
