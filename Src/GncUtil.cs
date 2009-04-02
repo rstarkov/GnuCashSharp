@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using RT.Util.Collections;
+using RT.Util.ExtensionMethods;
 
 namespace GnuCashSharp
 {
@@ -15,9 +16,9 @@ namespace GnuCashSharp
                 return res;
             string[] parts = value.Split('/');
             if (parts.Length != 2)
-                throw new GncException("Cannot parse Gnc Numeric value: \"{0}\"", value);
+                throw new GncException("Cannot parse Gnc Numeric value: \"{0}\"".Fmt(value));
             try { return decimal.Parse(parts[0]) / decimal.Parse(parts[1]); }
-            catch { throw new GncException("Cannot parse Gnc Numeric value: \"{0}\"", value); }
+            catch { throw new GncException("Cannot parse Gnc Numeric value: \"{0}\"".Fmt(value)); }
         }
 
         /// <summary>
