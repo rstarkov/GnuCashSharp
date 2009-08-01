@@ -14,7 +14,7 @@ namespace GnuCashSharp
         private string _guid;
         private DateTime _datePosted;
         private DateTimeOffset _dateEntered;
-        private int _num;
+        private string _num;
         private string _description;
         private Dictionary<string, GncSplit> _splits;
 
@@ -24,7 +24,7 @@ namespace GnuCashSharp
             _guid = null;
             _datePosted = new DateTime();
             _dateEntered = new DateTimeOffset();
-            _num = 0;
+            _num = "";
             _description = null;
             _splits = new Dictionary<string, GncSplit>();
         }
@@ -35,7 +35,7 @@ namespace GnuCashSharp
             _guid = xml.ChkElement(GncName.Trn("id")).Value;
             _datePosted = DateTimeOffset.Parse(xml.ChkElement(GncName.Trn("date-posted")).ChkElement(GncName.Ts("date")).Value).Date;
             _dateEntered = DateTimeOffset.Parse(xml.ChkElement(GncName.Trn("date-entered")).ChkElement(GncName.Ts("date")).Value);
-            _num = xml.ValueOrDefault(GncName.Trn("num"), 0);
+            _num = xml.ValueOrDefault(GncName.Trn("num"), "");
             _description = xml.ChkElement(GncName.Trn("description")).Value;
             foreach (var el in xml.ChkElement(GncName.Trn("splits")).Elements(GncName.Trn("split")))
             {
@@ -64,7 +64,7 @@ namespace GnuCashSharp
             get { return _dateEntered; }
         }
 
-        public int Num
+        public string Num
         {
             get { return _num; }
         }
@@ -90,7 +90,11 @@ namespace GnuCashSharp
             int res = this._datePosted.CompareTo(other._datePosted);
             if (res != 0)
                 return res;
-            res = this._num.CompareTo(other._num);
+            int thisNum, otherNum;
+            if (int.TryParse(this._num, out thisNum) && int.TryParse(other._num, out otherNum))
+                res = thisNum.CompareTo(otherNum);
+            else
+                res = this._num.CompareTo(other._num);
             if (res != 0)
                 return res;
             res = this._dateEntered.CompareTo(other._dateEntered);
