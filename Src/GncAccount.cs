@@ -7,7 +7,7 @@ using RT.Util.ExtensionMethods;
 
 namespace GnuCashSharp
 {
-    public class GncAccount
+    public class GncAccount : IComparable<GncAccount>
     {
         private GncBook _book;
         private string _name;
@@ -166,6 +166,11 @@ namespace GnuCashSharp
                 acct = acct.Parent;
             }
             return result;
+        }
+
+        public int CompareTo(GncAccount other)
+        {
+            return this._name.CompareTo(other._name);
         }
     }
 }

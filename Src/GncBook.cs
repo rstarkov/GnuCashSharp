@@ -111,6 +111,8 @@ namespace GnuCashSharp
                     _cacheAccountChildren[acct.ParentGuid].Add(acct.Guid);
                 }
             }
+            foreach (var list in _cacheAccountChildren.Values)
+                list.Sort((x, y) => _accounts[x].Name.CompareTo(_accounts[y].Name));
         }
 
         internal void rebuildCacheAccountSplits()
