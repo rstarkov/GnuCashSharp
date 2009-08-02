@@ -290,5 +290,13 @@ namespace GnuCashSharp
                 return _transactions.Values.Select(trn => trn.DatePosted).Min();
             }
         }
+
+        public DateTime LatestDate
+        {
+            get
+            {
+                return _transactions.Values.Select(trn => trn.DatePosted).Max();
+            }
+        }
     }
 }

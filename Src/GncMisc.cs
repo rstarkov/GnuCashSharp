@@ -125,10 +125,16 @@ namespace GnuCashSharp
             DateTime to = _end;
             while (from <= to)
             {
-                DateTime periodTo = from.AddDays(35);
-                periodTo = new DateTime(periodTo.Year, periodTo.Month, 1).AddDays(-1);
-                yield return new DateInterval(from, periodTo);
-                from = periodTo.AddDays(1);
+                int year = from.Year;
+                int month = from.Month + 1;
+                if (month > 12)
+                {
+                    month -= 12;
+                    year += 1;
+                }
+                var periodTo = new DateTime(year, month, 1);
+                yield return new DateInterval(from, periodTo.AddDays(-1));
+                from = periodTo;
             }
         }
 
