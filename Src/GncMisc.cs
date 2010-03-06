@@ -7,7 +7,7 @@ namespace GnuCashSharp
 {
     public enum GncAccountType
     {
-        UNKNOWN=0,
+        UNKNOWN = 0,
         ROOT,
         CASH,
         ASSET,
@@ -19,7 +19,7 @@ namespace GnuCashSharp
 
     public enum GncReconciled
     {
-        UNKNOWN=0,
+        UNKNOWN = 0,
         Yes,
         No,
         Chk,
@@ -67,7 +67,7 @@ namespace GnuCashSharp
         public static string Vendor(string name) { return "{http://www.gnucash.org/XML/vendor}" + name; }
     }
 
-    public struct DateInterval: IEquatable<DateInterval>
+    public struct DateInterval : IEquatable<DateInterval>
     {
         private DateTime _start;
         private DateTime _end;
@@ -80,8 +80,8 @@ namespace GnuCashSharp
 
         public DateInterval(int startYear, int startMonth, int startDay, int endYear, int endMonth, int endDay)
         {
-            _start = new DateTime(startYear, startMonth, startDay);
-            _end = new DateTime(endYear, endMonth, endDay);
+            _start = new DateTime(startYear, startMonth, startDay, 0, 0, 0, DateTimeKind.Utc);
+            _end = new DateTime(endYear, endMonth, endDay, 0, 0, 0, DateTimeKind.Utc);
         }
 
         public DateTime Start
@@ -104,7 +104,7 @@ namespace GnuCashSharp
         public override bool Equals(object obj)
         {
             if (obj is DateInterval)
-                return Equals((DateInterval)obj);
+                return Equals((DateInterval) obj);
             else
                 return base.Equals(obj);
         }
@@ -121,7 +121,7 @@ namespace GnuCashSharp
 
         public IEnumerable<DateInterval> EnumMonths()
         {
-            DateTime from = _start;
+            DateTime from = _start.AssumeUtc();
             DateTime to = _end;
             while (from <= to)
             {
@@ -132,7 +132,7 @@ namespace GnuCashSharp
                     month -= 12;
                     year += 1;
                 }
-                var periodTo = new DateTime(year, month, 1);
+                var periodTo = new DateTime(year, month, 1).AssumeUtc();
                 yield return new DateInterval(from, periodTo.AddDays(-1));
                 from = periodTo;
             }
@@ -141,6 +141,17 @@ namespace GnuCashSharp
         public bool Contains(DateTime date)
         {
             return date >= _start && date <= _end;
+        }
+
+        public double TotalMonths
+        {
+            get
+            {
+                double months = (_end.Year * 12 + _end.Month) - (_start.Year * 12 + _start.Month) + 1;
+                months -= ((double) _start.Day - 1.0) / DateTime.DaysInMonth(_start.Year, _start.Month);
+                months -= ((double) DateTime.DaysInMonth(_end.Year, _end.Month) - _end.Day) / DateTime.DaysInMonth(_end.Year, _end.Month);
+                return months;
+            }
         }
     }
 }

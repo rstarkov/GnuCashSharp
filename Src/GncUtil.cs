@@ -30,5 +30,20 @@ namespace GnuCashSharp
         {
             return new DateTime(DateTimeOffset.Parse(value).Date.Ticks, DateTimeKind.Utc);
         }
+
+        public static DateTime StartOfMonth(this DateTime date)
+        {
+            return new DateTime(date.Year, date.Month, 1, date.Hour, date.Minute, date.Second, date.Millisecond, date.Kind);
+        }
+
+        public static DateTime EndOfMonth(this DateTime date)
+        {
+            return new DateTime(date.Year, date.Month, DateTime.DaysInMonth(date.Year, date.Month), date.Hour, date.Minute, date.Second, date.Millisecond, date.Kind);
+        }
+
+        public static DateTime AssumeUtc(this DateTime dt)
+        {
+            return new DateTime(dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, dt.Second, dt.Millisecond, DateTimeKind.Utc);
+        }
     }
 }
