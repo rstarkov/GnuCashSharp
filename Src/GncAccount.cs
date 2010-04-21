@@ -13,9 +13,7 @@ namespace GnuCashSharp
         private string _name;
         private string _guid;
         private string _parentGuid;
-        private GncAccountType _type;
         private string _commodity;
-        private int _commodityScu;
         private string _description;
 
         public GncAccount(GncBook book)
@@ -53,19 +51,9 @@ namespace GnuCashSharp
             get { return _parentGuid; }
         }
 
-        public GncAccountType Type
-        {
-            get { return _type; }
-        }
-
         public string Commodity
         {
             get { return _commodity; }
-        }
-
-        public int CommodityScu
-        {
-            get { return _commodityScu; }
         }
 
         public string Description
