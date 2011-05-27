@@ -66,6 +66,9 @@ namespace GnuCashSharp
                     decimal value = priceXml.ChkElement(GncName.Price("value")).Value.ToGncDecimal();
                     string source = priceXml.ChkElement(GncName.Price("source")).Value;
 
+                    if (!_commodities.ContainsKey(cmdty.Identifier))
+                        _commodities.Add(cmdty.Identifier, new GncCommodity(this, identifier: cmdty.Identifier, name: cmdty.Identifier));
+
                     if (cmdty.Identifier == _baseCurrencyId)
                     {
                         _commodities[cmdty.Identifier].ExRate[timepoint] = 1m / value;

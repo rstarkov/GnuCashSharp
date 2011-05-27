@@ -15,12 +15,12 @@ namespace GnuCashSharp
         private string _name;
         private GncTimeSeries _exrate;
 
-        public GncCommodity(GncBook book)
+        public GncCommodity(GncBook book, string identifier = null, string space = null, string name = null)
         {
             _book = book;
-            _identifier = null;
-            _space = null;
-            _name = null;
+            _identifier = identifier;
+            _space = space;
+            _name = name;
             _exrate = new GncTimeSeries();
         }
 
