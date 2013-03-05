@@ -16,6 +16,7 @@ namespace GnuCashSharp
         private DateTimeOffset _dateEntered;
         private string _num;
         private string _description;
+        private GncCommodity _commodity;
         private Dictionary<string, GncSplit> _splits;
 
         public GncTransaction(GncBook book)
@@ -37,6 +38,7 @@ namespace GnuCashSharp
             _dateEntered = DateTimeOffset.Parse(xml.ChkElement(GncName.Trn("date-entered")).ChkElement(GncName.Ts("date")).Value);
             _num = xml.ValueOrDefault(GncName.Trn("num"), "");
             _description = xml.ChkElement(GncName.Trn("description")).Value;
+            _commodity = _book.GetCommodity(GncCommodity.MakeIdentifier(xml.ChkElement(GncName.Trn("currency"))));
             foreach (var el in xml.ChkElement(GncName.Trn("splits")).Elements(GncName.Trn("split")))
             {
                 GncSplit split = new GncSplit(this, el);
@@ -72,6 +74,11 @@ namespace GnuCashSharp
         public string Description
         {
             get { return _description; }
+        }
+
+        public GncCommodity Commodity
+        {
+            get { return _commodity; }
         }
 
         public GncSplit GetSplit(string guid)

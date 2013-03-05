@@ -92,6 +92,7 @@ namespace GnuCashSharp
             rebuildCacheAccountSplits();
             rebuildCacheAccountAllBalances();
             verifyBalsnaps();
+            verifyCurrencies();
         }
 
         internal void rebuildCacheAccountChildren()
@@ -183,7 +184,7 @@ namespace GnuCashSharp
         /// Verifies whether all balsnaps match the actual account balance. Issues warnings about
         /// any mismatch, as well as about balsnaps that cannot be parsed correctly.
         /// </summary>
-        internal void verifyBalsnaps()
+        private void verifyBalsnaps()
         {
             foreach (var split in _splits.Values)
             {
@@ -201,6 +202,66 @@ namespace GnuCashSharp
                 {
                     _session.Warn("Could not parse balance snapshot in account \"{0}\", date \"{1}\", value \"{2}\"".Fmt(
                         split.Account.Path(":"), split.Transaction.DatePosted, e.OffendingValue));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Warn about certain types of incorrectly recorded transactions.
+        /// </summary>
+        private void verifyCurrencies()
+        {
+            foreach (var trn in _transactions.Values)
+            {
+                var getAccounts = Ut.Lambda(() => trn.EnumSplits().Select(s => s.Account.Path(":")).Order().JoinString(", ", "\"", "\"", " and "));
+
+                // Check 1. The total value in the transaction currency must add up to zero
+                if (trn.EnumSplits().Sum(s => s.Value) != 0)
+                {
+                    _session.Warn("Transaction with unbalanced split values in the transaction currency (this is a severe bug in GnuCash): accounts {0}, date \"{1}\", guid \"{2}\"".Fmt(
+                        getAccounts(), trn.DatePosted, trn.Guid));
+                    continue;
+                }
+
+                // Check 2. If all accounts are in the same currency, the total must add up to zero
+                if (trn.EnumSplits().Select(s => s.Commodity).Distinct().Count() == 1)
+                {
+                    if (trn.EnumSplits().Sum(s => s.Quantity) != 0)
+                    {
+                        _session.Warn("Single-currency transaction with unbalanced splits (this is a severe bug in GnuCash): accounts {0}, date \"{1}\", guid \"{2}\"".Fmt(
+                            getAccounts(), trn.DatePosted, trn.Guid));
+                        continue;
+                    }
+                }
+
+                // Check 3. The transaction currency must be equal to at least one account's currency (although why the transaction even has a currency is a very good question)
+                if (trn.EnumSplits().All(s => s.Commodity != trn.Commodity))
+                {
+                    _session.Warn("The transaction currency ({0}) is not the currency of any of the splits' destination accounts: {1}, date \"{2}\", guid \"{3}\"".Fmt(
+                        trn.Commodity.Identifier, getAccounts(), trn.DatePosted, trn.Guid));
+                    continue;
+                }
+
+                // Check 4. If the split and transaction currencies are the same, the value in both had better be the same too
+                foreach (var split in trn.EnumSplits())
+                {
+                    if (trn.Commodity == split.Commodity && split.Quantity != split.Account.RoundQuantity(split.Value))
+                    {
+                        _session.Warn("The transaction has a split in the transaction currency whose transaction-currency-value is different to split-currency-value (which is a serious bug in GnuCash): account {0}, date \"{1}\", value \"{2}\", guid \"{3}\"".Fmt(
+                            split.Account.Path(":"), trn.DatePosted, split.Quantity, trn.Guid));
+                        continue;
+                    }
+                }
+
+                // Check 5. If the split and transaction currencies are different, assume that the exchange rate is not 1:1 and so the values should differ
+                foreach (var split in trn.EnumSplits())
+                {
+                    if (trn.Commodity != split.Commodity && split.Quantity == split.Value && split.Quantity >= 1)
+                    {
+                        _session.Warn("The transaction has a split whose value ({2}) is suspiciously the same in currencies {3} and {4}: account {0}, date \"{1}\"".Fmt(
+                            split.Account.Path(":"), trn.DatePosted, split.Quantity, trn.Commodity.Identifier, split.Commodity.Identifier));
+                        continue;
+                    }
                 }
             }
         }
@@ -263,7 +324,7 @@ namespace GnuCashSharp
 
         public GncCommodity GetCommodity(string identifier)
         {
-            return _commodities[identifier];
+            return identifier == null ? null : _commodities[identifier];
         }
 
         public GncAccount GetAccountByPath(string path)

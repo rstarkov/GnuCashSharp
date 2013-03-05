@@ -34,10 +34,9 @@ namespace GnuCashSharp
 
             try
             {
-                GZipStream gz = new GZipStream(File.Open(file, FileMode.Open, FileAccess.Read, FileShare.Read), CompressionMode.Decompress);
-                StreamReader sr = new StreamReader(gz);
-                doc = XDocument.Load(sr);
-                sr.Close();
+                using (var gz = new GZipStream(File.Open(file, FileMode.Open, FileAccess.Read, FileShare.Read), CompressionMode.Decompress))
+                using (var sr = new StreamReader(gz))
+                    doc = XDocument.Load(sr);
             }
             catch
             {

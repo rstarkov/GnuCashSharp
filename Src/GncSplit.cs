@@ -36,7 +36,7 @@ namespace GnuCashSharp
             _value = xml.ChkElement(GncName.Split("value")).Value.ToGncDecimal();
             _quantity = xml.ChkElement(GncName.Split("quantity")).Value.ToGncDecimal();
             _accountGuid = xml.ChkElement(GncName.Split("account")).Value;
-            _memo = xml.ValueOrDefault(GncName.Split("memo"), (string)null);
+            _memo = xml.ValueOrDefault(GncName.Split("memo"), (string) null);
         }
 
         public GncTransaction Transaction
@@ -82,7 +82,7 @@ namespace GnuCashSharp
 
         public GncCommodity Commodity
         {
-            get { return _transaction.Book.GetCommodity(Account.Commodity); }
+            get { return Account.Commodity; }
         }
 
         public string Memo
@@ -147,7 +147,7 @@ namespace GnuCashSharp
                     throw new InvalidOperationException("Cannot get Balance Snapshot value because this transaction is not a balance snapshot.");
 
                 decimal result;
-                string value = Regex.Replace(_transaction.Description.Substring(_transaction.Book.Session.BalsnapPrefix.Length), @",| |(\(.*\))", "");
+                string value = Regex.Replace(_transaction.Description.Substring(_transaction.Book.Session.BalsnapPrefix.Length), @" |(\(.*\))", "");
                 if (decimal.TryParse(value, out result))
                     return result;
                 else

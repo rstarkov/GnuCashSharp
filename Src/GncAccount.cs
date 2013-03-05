@@ -13,7 +13,8 @@ namespace GnuCashSharp
         private string _name;
         private string _guid;
         private string _parentGuid;
-        private string _commodity;
+        private GncCommodity _commodity;
+        private int _commodityScu, _commodityDecimals;
         private string _description;
 
         public GncAccount(GncBook book)
@@ -26,9 +27,14 @@ namespace GnuCashSharp
         {
             _name = xml.ChkElement(GncName.Act("name")).Value;
             _guid = xml.ChkElement(GncName.Act("id")).Value;
-            _parentGuid = xml.ValueOrDefault(GncName.Act("parent"), (string)null);
-            _commodity = GncCommodity.MakeIdentifier(xml.Element(GncName.Act("commodity")));
-            _description = xml.ValueOrDefault(GncName.Act("description"), (string)null);
+            _parentGuid = xml.ValueOrDefault(GncName.Act("parent"), (string) null);
+            _commodity = book.GetCommodity(GncCommodity.MakeIdentifier(xml.Element(GncName.Act("commodity"))));
+            string scu = xml.ValueOrDefault(GncName.Act("commodity-scu"), "1");
+            _commodityDecimals = scu.Count(c => c == '0');
+            if (scu != "1" + new string('0', _commodityDecimals))
+                throw new Exception("Could not parse commodity-scu: expected a power of 10.");
+            _commodityScu = int.Parse(scu);
+            _description = xml.ValueOrDefault(GncName.Act("description"), (string) null);
         }
 
         public GncBook Book
@@ -51,9 +57,17 @@ namespace GnuCashSharp
             get { return _parentGuid; }
         }
 
-        public string Commodity
+        public GncCommodity Commodity
         {
             get { return _commodity; }
+        }
+
+        /// <summary>
+        /// Indicates commodity subdivision unit. "1" means whole units. "100" means "subdivide into hundredths".
+        /// </summary>
+        public int CommodityScu
+        {
+            get { return _commodityScu; }
         }
 
         public string Description
@@ -116,7 +130,7 @@ namespace GnuCashSharp
         {
             decimal total = 0;
             foreach (var split in EnumSplits(false).Where(spl => spl.Transaction.DatePosted <= asOf))
-                total += new GncAmount(split.Amount.Quantity, Book.GetCommodity(Commodity), asOf).ConvertTo(cmdty).Quantity;
+                total += new GncAmount(split.Amount.Quantity, Commodity, asOf).ConvertTo(cmdty).Quantity;
             if (includeSubaccts)
             {
                 foreach (var subacct in EnumChildren())
@@ -172,6 +186,11 @@ namespace GnuCashSharp
         public int CompareTo(GncAccount other)
         {
             return this._name.CompareTo(other._name);
+        }
+
+        public decimal RoundQuantity(decimal quantity)
+        {
+            return Math.Round(quantity, _commodityDecimals);
         }
     }
 }
