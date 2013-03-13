@@ -226,7 +226,8 @@ namespace GnuCashSharp
                 // Check 2. If all accounts are in the same currency, the total must add up to zero
                 if (trn.EnumSplits().Select(s => s.Commodity).Distinct().Count() == 1)
                 {
-                    if (trn.EnumSplits().Sum(s => s.Quantity) != 0)
+                    var leastPrecise = trn.EnumSplits().MinElement(s => s.Account.CommodityScu).Account;
+                    if (trn.EnumSplits().Sum(s => leastPrecise.RoundQuantity(s.Quantity)) != 0)
                     {
                         _session.Warn("Single-currency transaction with unbalanced splits (this is a severe bug in GnuCash): accounts {0}, date \"{1}\", guid \"{2}\"".Fmt(
                             getAccounts(), trn.DatePosted, trn.Guid));
@@ -247,8 +248,8 @@ namespace GnuCashSharp
                 {
                     if (trn.Commodity == split.Commodity && split.Quantity != split.Account.RoundQuantity(split.Value))
                     {
-                        _session.Warn("The transaction has a split in the transaction currency whose transaction-currency-value is different to split-currency-value (which is a serious bug in GnuCash): account {0}, date \"{1}\", value \"{2}\", guid \"{3}\"".Fmt(
-                            split.Account.Path(":"), trn.DatePosted, split.Quantity, trn.Guid));
+                        _session.Warn("The transaction has a split in the transaction currency ({4}) whose transaction-currency-value ({5}, rounded) is different to split-currency-value ({6}) (which is a serious bug in GnuCash): account {0}, date \"{1}\", value \"{2}\", guid \"{3}\"".Fmt(
+                            split.Account.Path(":"), trn.DatePosted, split.Quantity, trn.Guid, split.Commodity.Name, split.Account.RoundQuantity(split.Value), split.Quantity));
                         continue;
                     }
                 }
@@ -258,8 +259,8 @@ namespace GnuCashSharp
                 {
                     if (trn.Commodity != split.Commodity && split.Quantity == split.Value && split.Quantity >= 1)
                     {
-                        _session.Warn("The transaction has a split whose value ({2}) is suspiciously the same in currencies {3} and {4}: account {0}, date \"{1}\"".Fmt(
-                            split.Account.Path(":"), trn.DatePosted, split.Quantity, trn.Commodity.Identifier, split.Commodity.Identifier));
+                        _session.Warn("The transaction has a split whose value ({2}) is suspiciously the same in currencies {3} and {4}: account {0}, date \"{1}\", guid \"{5}\"".Fmt(
+                            split.Account.Path(":"), trn.DatePosted, split.Quantity, trn.Commodity.Identifier, split.Commodity.Identifier, trn.Guid));
                         continue;
                     }
                 }
