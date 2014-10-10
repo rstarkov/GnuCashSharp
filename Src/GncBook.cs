@@ -71,7 +71,7 @@ namespace GnuCashSharp
 
                     if (cmdty.Identifier == _baseCurrencyId)
                     {
-                        _commodities[cmdty.Identifier].ExRate[timepoint] = 1m / value;
+                        _commodities[ccy.Identifier].ExRate[timepoint] = 1m / value;
                     }
                     else if (ccy.Identifier == _baseCurrencyId)
                     {
