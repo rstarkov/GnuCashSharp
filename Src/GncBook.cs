@@ -63,8 +63,13 @@ namespace GnuCashSharp
                     var cmdty = new GncCommodity(null, priceXml.ChkElement(GncName.Price("commodity")));
                     var ccy = new GncCommodity(null, priceXml.ChkElement(GncName.Price("currency")));
                     DateTime timepoint = GncUtil.ParseGncDate(priceXml.ChkElement(GncName.Price("time")).ChkElement(GncName.Ts("date")).Value);
-                    decimal value = priceXml.ChkElement(GncName.Price("value")).Value.ToGncDecimal();
                     string source = priceXml.ChkElement(GncName.Price("source")).Value;
+                    if (priceXml.ChkElement(GncName.Price("value")).Value == "1/0")
+                    {
+                        _session.Warn("Ignoring commodity price {0}/{1}, on {2}, source {3}, because the price is 1/0 (bug in GnuCash)".Fmt(cmdty.Identifier, ccy.Identifier, timepoint.ToShortDateString(), source));
+                        continue;
+                    }
+                    decimal value = priceXml.ChkElement(GncName.Price("value")).Value.ToGncDecimal();
 
                     if (!_commodities.ContainsKey(cmdty.Identifier))
                         _commodities.Add(cmdty.Identifier, new GncCommodity(this, identifier: cmdty.Identifier, name: cmdty.Identifier));
@@ -80,7 +85,7 @@ namespace GnuCashSharp
                     else if (source != "user:xfer-dialog")
                     {
                         // Ignore and warn
-                        _session.Warn("Ignoring commodity price {0}/{1}, on {3}, source {4}, as it is not linked to the base currency ({2})".Fmt(cmdty.Identifier, ccy.Identifier, _baseCurrencyId, timepoint.ToShortDateString(), source));
+                        //_session.Warn("Ignoring commodity price {0}/{1}, on {3}, source {4}, as it is not linked to the base currency ({2})".Fmt(cmdty.Identifier, ccy.Identifier, _baseCurrencyId, timepoint.ToShortDateString(), source));
                     }
                     // Otherwise just ignore completely
                 }
@@ -264,6 +269,39 @@ namespace GnuCashSharp
                         continue;
                     }
                 }
+            }
+
+            // Check 6. Report vast deviations of the exchange rate, especially where it is close to the inverse
+            foreach (var cmdty in _commodities.Values)
+            {
+                var suspicious = from p in cmdty.ExRate.ConsecutivePairs(false)
+                                 let r1 = p.Item1
+                                 let r2 = p.Item2
+                                 let ratio = Math.Max(r1.Value, 1 / r2.Value) / Math.Min(r1.Value, 1 / r2.Value)
+                                 where ratio < 1.1m
+                                 select new { r1, r2 };
+                var surrounded = suspicious.ConsecutivePairs(false)
+                    .Where(x => x.Item1.r2.Key == x.Item2.r1.Key && x.Item1.r2.Value == x.Item2.r1.Value)
+                    .Select(x => new { main = x.Item1.r2, before = x.Item1.r1, after = x.Item2.r2 })
+                    .ToList();
+                var dates = surrounded.Select(x => x.main.Key).ToHashSet();
+                var warnings = surrounded.Select(x => new
+                {
+                    date = x.main.Key,
+                    msg = "Suspicious exchange rate for {0}: {1:0.00##} on {2}, but surrounded by {3:0.00##} and {4:0.00##}, close to the inverse.".Fmt(cmdty.Name, x.main.Value, x.main.Key, x.before.Value, x.after.Value)
+                }).ToList();
+                foreach (var sus in suspicious)
+                {
+                    var match1 = !dates.Contains(sus.r1.Key) ? null : surrounded.Where(s => s.main.Key == sus.r1.Key && s.main.Value == sus.r1.Value).SingleOrDefault();
+                    if (match1 != null)
+                        continue;
+                    var match2 = !dates.Contains(sus.r2.Key) ? null : surrounded.Where(s => s.main.Key == sus.r2.Key && s.main.Value == sus.r2.Value).SingleOrDefault();
+                    if (match2 != null)
+                        continue;
+                    warnings.Add(new { date = sus.r1.Key, msg = "Suspicious exchange rate for {0}: {1:0.00##} on {2}, {3:0.00##} on {4}, which is close to the inverse.".Fmt(cmdty.Name, sus.r1.Value, sus.r1.Key, sus.r2.Value, sus.r2.Key) });
+                }
+                foreach (var w in warnings.OrderBy(ww => ww.date))
+                    _session.Warn(w.msg);
             }
         }
 
