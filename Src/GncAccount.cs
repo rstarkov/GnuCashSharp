@@ -192,5 +192,11 @@ namespace GnuCashSharp
         {
             return Math.Round(quantity, _commodityDecimals);
         }
+
+        public bool RoundedEquals(decimal qty1, decimal qty2)
+        {
+            return Math.Floor(qty1 * _commodityScu) == Math.Floor(qty2 * _commodityScu)
+                || Math.Ceiling(qty1 * _commodityScu) == Math.Ceiling(qty2 * _commodityScu);
+        }
     }
 }

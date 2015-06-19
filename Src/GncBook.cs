@@ -219,28 +219,31 @@ namespace GnuCashSharp
             foreach (var trn in _transactions.Values)
             {
                 var getAccounts = Ut.Lambda(() => trn.EnumSplits().Select(s => s.Account.Path(":")).Order().JoinString(", ", "\"", "\"", " and "));
+                var getTrnDesc = Ut.Lambda(() => "date {0}, descr \"{1}\", accounts {2}, guid {3}".Fmt(trn.DatePosted.ToLocalTime().ToShortDateString(), trn.Description, getAccounts(), trn.Guid));
+                var getSplitDesc = Ut.Lambda((GncSplit split) => "date {0}, descr \"{1}\", account {2}, guid {3}".Fmt(
+                    trn.DatePosted.ToLocalTime().ToShortDateString(), trn.Description + (string.IsNullOrWhiteSpace(split.Memo) ? "" : (" / " + split.Memo)), split.Account.Path(":"), split.Guid));
 
-                // Check 1. The total value in the transaction currency must add up to zero
+                // The total value in the transaction currency must add up to zero
                 if (trn.EnumSplits().Sum(s => s.Value) != 0)
                 {
-                    _session.Warn("Transaction with unbalanced split values in the transaction currency (this is a severe bug in GnuCash): accounts {0}, date \"{1}\", guid \"{2}\"".Fmt(
+                    _session.Warn("Transaction with unbalanced split values in the transaction currency (bug in GnuCash?): accounts {0}, date \"{1}\", guid \"{2}\"".Fmt(
                         getAccounts(), trn.DatePosted, trn.Guid));
                     continue;
                 }
 
-                // Check 2. If all accounts are in the same currency, the total must add up to zero
+                // If all accounts are in the same currency, the total must add up to zero
                 if (trn.EnumSplits().Select(s => s.Commodity).Distinct().Count() == 1)
                 {
                     var leastPrecise = trn.EnumSplits().MinElement(s => s.Account.CommodityScu).Account;
                     if (trn.EnumSplits().Sum(s => leastPrecise.RoundQuantity(s.Quantity)) != 0)
                     {
-                        _session.Warn("Single-currency transaction with unbalanced splits (this is a severe bug in GnuCash): accounts {0}, date \"{1}\", guid \"{2}\"".Fmt(
+                        _session.Warn("Single-currency transaction with unbalanced splits (bug in GnuCash?): accounts {0}, date \"{1}\", guid \"{2}\"".Fmt(
                             getAccounts(), trn.DatePosted, trn.Guid));
                         continue;
                     }
                 }
 
-                // Check 3. The transaction currency must be equal to at least one account's currency (although why the transaction even has a currency is a very good question)
+                // The transaction currency must be equal to at least one account's currency (although why the transaction even has a currency is a very good question)
                 if (trn.EnumSplits().All(s => s.Commodity != trn.Commodity))
                 {
                     _session.Warn("The transaction currency ({0}) is not the currency of any of the splits' destination accounts: {1}, date \"{2}\", guid \"{3}\"".Fmt(
@@ -248,30 +251,55 @@ namespace GnuCashSharp
                     continue;
                 }
 
-                // Check 4. If the split and transaction currencies are the same, the value in both had better be the same too
+                // If the split and transaction currencies are the same, the value in both had better be the same too
                 foreach (var split in trn.EnumSplits())
                 {
-                    if (trn.Commodity == split.Commodity && split.Quantity != split.Account.RoundQuantity(split.Value))
+                    if (trn.Commodity == split.Commodity && !split.Account.RoundedEquals(split.Quantity, split.Value))
                     {
-                        _session.Warn("The transaction has a split in the transaction currency ({4}) whose transaction-currency-value ({5}, rounded) is different to split-currency-value ({6}) (which is a serious bug in GnuCash): account {0}, date \"{1}\", value \"{2}\", guid \"{3}\"".Fmt(
+                        _session.Warn("Split in the transaction currency ({4}) whose transaction-currency-value ({5}, rounded) is different to split-currency-value ({6}) (bug in GnuCash?): account {0}, date \"{1}\", value \"{2}\", guid \"{3}\"".Fmt(
                             split.Account.Path(":"), trn.DatePosted, split.Quantity, trn.Guid, split.Commodity.Name, split.Account.RoundQuantity(split.Value), split.Quantity));
                         continue;
                     }
                 }
 
-                // Check 5. If the split and transaction currencies are different, assume that the exchange rate is not 1:1 and so the values should differ
+                // Various exchange rate checks
                 foreach (var split in trn.EnumSplits())
                 {
-                    if (trn.Commodity != split.Commodity && split.Quantity == split.Value && split.Quantity >= 1)
+                    if ((split.Value == 0) != (split.Quantity == 0))
                     {
-                        _session.Warn("The transaction has a split whose value ({2}) is suspiciously the same in currencies {3} and {4}: account {0}, date \"{1}\", guid \"{5}\"".Fmt(
-                            split.Account.Path(":"), trn.DatePosted, split.Quantity, trn.Commodity.Identifier, split.Commodity.Identifier, trn.Guid));
+                        _session.Warn("Split with a zero or infinite exchange rate: " + getSplitDesc(split));
                         continue;
+                    }
+                    if (split.Value == 0)
+                        continue;
+                    if (trn.Commodity == split.Commodity)
+                    {
+                        if (Math.Sign(split.Value) != Math.Sign(split.Quantity))
+                        {
+                            _session.Warn("Split with a negative exchange rate: " + getSplitDesc(split));
+                            continue;
+                        }
+                        var expectedExRateFrom = trn.Commodity.IsBaseCurrency ? 1m : trn.Commodity.ExRate.Get(trn.DatePosted.ToUniversalTime(), GncInterpolation.Linear);
+                        var expectedExRateTo = split.Commodity.IsBaseCurrency ? 1m : split.Commodity.ExRate.Get(trn.DatePosted.ToUniversalTime(), GncInterpolation.Linear);
+                        var expectedExRate = expectedExRateTo / expectedExRateFrom;
+                        var actualExRate = split.Value / split.Quantity;
+                        if ((expectedExRate < 1) != (actualExRate < 1) && Math.Max(expectedExRate, 1 / expectedExRate) > 1.1m)
+                        {
+                            _session.Warn("Split with a likely inverse exchange rate: " + getSplitDesc(split));
+                            continue;
+                        }
+                        // Too sensitive, but worth enabling with support for some sort of an "ignore" feature.
+                        //if (Math.Max(expectedExRate, actualExRate) / Math.Min(expectedExRate, actualExRate) > 1.5m)
+                        //{
+                        //    _session.Warn("Split with an exchange rate that differs significantly from expected: expected \"{0:0.00##}\", actual \"{1:0.00##}\", {2}".Fmt(
+                        //        expectedExRate, actualExRate, getSplitDesc(split)));
+                        //    continue;
+                        //}
                     }
                 }
             }
 
-            // Check 6. Report vast deviations of the exchange rate, especially where it is close to the inverse
+            // Report vast deviations of the exchange rate, especially where it is close to the inverse
             foreach (var cmdty in _commodities.Values)
             {
                 var suspicious = from p in cmdty.ExRate.ConsecutivePairs(false)
