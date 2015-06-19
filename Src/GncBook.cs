@@ -216,6 +216,42 @@ namespace GnuCashSharp
         /// </summary>
         private void verifyCurrencies()
         {
+            // Report vast deviations of the exchange rate, especially where it is close to the inverse
+            var anySuspiciousExchangeRates = false;
+            foreach (var cmdty in _commodities.Values)
+            {
+                var suspicious = from p in cmdty.ExRate.ConsecutivePairs(false)
+                                 let r1 = p.Item1
+                                 let r2 = p.Item2
+                                 let ratio = Math.Max(r1.Value, 1 / r2.Value) / Math.Min(r1.Value, 1 / r2.Value)
+                                 where ratio < 1.1m
+                                 select new { r1, r2 };
+                var surrounded = suspicious.ConsecutivePairs(false)
+                    .Where(x => x.Item1.r2.Key == x.Item2.r1.Key && x.Item1.r2.Value == x.Item2.r1.Value)
+                    .Select(x => new { main = x.Item1.r2, before = x.Item1.r1, after = x.Item2.r2 })
+                    .ToList();
+                var dates = surrounded.Select(x => x.main.Key).ToHashSet();
+                var warnings = surrounded.Select(x => new
+                {
+                    date = x.main.Key,
+                    msg = "Suspicious exchange rate for {0}: {1:0.00##} on {2}, but surrounded by {3:0.00##} and {4:0.00##}, close to the inverse.".Fmt(cmdty.Name, x.main.Value, x.main.Key, x.before.Value, x.after.Value)
+                }).ToList();
+                foreach (var sus in suspicious)
+                {
+                    var match1 = !dates.Contains(sus.r1.Key) ? null : surrounded.Where(s => s.main.Key == sus.r1.Key && s.main.Value == sus.r1.Value).SingleOrDefault();
+                    if (match1 != null)
+                        continue;
+                    var match2 = !dates.Contains(sus.r2.Key) ? null : surrounded.Where(s => s.main.Key == sus.r2.Key && s.main.Value == sus.r2.Value).SingleOrDefault();
+                    if (match2 != null)
+                        continue;
+                    warnings.Add(new { date = sus.r1.Key, msg = "Suspicious exchange rate for {0}: {1:0.00##} on {2}, {3:0.00##} on {4}, which is close to the inverse.".Fmt(cmdty.Name, sus.r1.Value, sus.r1.Key, sus.r2.Value, sus.r2.Key) });
+                }
+                foreach (var w in warnings.OrderBy(ww => ww.date))
+                    _session.Warn(w.msg);
+                anySuspiciousExchangeRates |= warnings.Count > 0;
+            }
+
+
             foreach (var trn in _transactions.Values)
             {
                 var getAccounts = Ut.Lambda(() => trn.EnumSplits().Select(s => s.Account.Path(":")).Order().JoinString(", ", "\"", "\"", " and "));
@@ -272,13 +308,15 @@ namespace GnuCashSharp
                     }
                     if (split.Value == 0)
                         continue;
-                    if (trn.Commodity == split.Commodity)
+                    if (trn.Commodity != split.Commodity)
                     {
                         if (Math.Sign(split.Value) != Math.Sign(split.Quantity))
                         {
                             _session.Warn("Split with a negative exchange rate: " + getSplitDesc(split));
                             continue;
                         }
+                        if (anySuspiciousExchangeRates)
+                            continue;
                         var expectedExRateFrom = trn.Commodity.IsBaseCurrency ? 1m : trn.Commodity.ExRate.Get(trn.DatePosted.ToUniversalTime(), GncInterpolation.Linear);
                         var expectedExRateTo = split.Commodity.IsBaseCurrency ? 1m : split.Commodity.ExRate.Get(trn.DatePosted.ToUniversalTime(), GncInterpolation.Linear);
                         var expectedExRate = expectedExRateTo / expectedExRateFrom;
@@ -297,39 +335,6 @@ namespace GnuCashSharp
                         //}
                     }
                 }
-            }
-
-            // Report vast deviations of the exchange rate, especially where it is close to the inverse
-            foreach (var cmdty in _commodities.Values)
-            {
-                var suspicious = from p in cmdty.ExRate.ConsecutivePairs(false)
-                                 let r1 = p.Item1
-                                 let r2 = p.Item2
-                                 let ratio = Math.Max(r1.Value, 1 / r2.Value) / Math.Min(r1.Value, 1 / r2.Value)
-                                 where ratio < 1.1m
-                                 select new { r1, r2 };
-                var surrounded = suspicious.ConsecutivePairs(false)
-                    .Where(x => x.Item1.r2.Key == x.Item2.r1.Key && x.Item1.r2.Value == x.Item2.r1.Value)
-                    .Select(x => new { main = x.Item1.r2, before = x.Item1.r1, after = x.Item2.r2 })
-                    .ToList();
-                var dates = surrounded.Select(x => x.main.Key).ToHashSet();
-                var warnings = surrounded.Select(x => new
-                {
-                    date = x.main.Key,
-                    msg = "Suspicious exchange rate for {0}: {1:0.00##} on {2}, but surrounded by {3:0.00##} and {4:0.00##}, close to the inverse.".Fmt(cmdty.Name, x.main.Value, x.main.Key, x.before.Value, x.after.Value)
-                }).ToList();
-                foreach (var sus in suspicious)
-                {
-                    var match1 = !dates.Contains(sus.r1.Key) ? null : surrounded.Where(s => s.main.Key == sus.r1.Key && s.main.Value == sus.r1.Value).SingleOrDefault();
-                    if (match1 != null)
-                        continue;
-                    var match2 = !dates.Contains(sus.r2.Key) ? null : surrounded.Where(s => s.main.Key == sus.r2.Key && s.main.Value == sus.r2.Value).SingleOrDefault();
-                    if (match2 != null)
-                        continue;
-                    warnings.Add(new { date = sus.r1.Key, msg = "Suspicious exchange rate for {0}: {1:0.00##} on {2}, {3:0.00##} on {4}, which is close to the inverse.".Fmt(cmdty.Name, sus.r1.Value, sus.r1.Key, sus.r2.Value, sus.r2.Key) });
-                }
-                foreach (var w in warnings.OrderBy(ww => ww.date))
-                    _session.Warn(w.msg);
             }
         }
 
