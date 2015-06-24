@@ -130,7 +130,7 @@ namespace GnuCashSharp
         {
             decimal total = 0;
             foreach (var split in EnumSplits(false).Where(spl => spl.Transaction.DatePosted <= asOf))
-                total += new GncAmount(split.Amount.Quantity, Commodity, asOf).ConvertTo(cmdty).Quantity;
+                total += split.ConvertAmount(cmdty).Quantity;
             if (includeSubaccts)
             {
                 foreach (var subacct in EnumChildren())
@@ -143,7 +143,7 @@ namespace GnuCashSharp
         {
             decimal total = 0;
             foreach (var split in EnumSplits(false).Where(spl => interval.Contains(spl.Transaction.DatePosted)))
-                total += split.Amount.ConvertTo(cmdty).Quantity;
+                total += split.ConvertAmount(cmdty).Quantity;
             if (includeSubaccts)
             {
                 foreach (var subacct in EnumChildren())

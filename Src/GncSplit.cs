@@ -63,7 +63,7 @@ namespace GnuCashSharp
         }
 
         /// <summary>
-        /// Amount of change in the destination account's currency.
+        /// Amount of change in the destination account's currency (i.e. in split's currency).
         /// </summary>
         public decimal Quantity
         {
@@ -153,6 +153,16 @@ namespace GnuCashSharp
                 else
                     throw new GncBalsnapParseException(this, value);
             }
+        }
+
+        /// <summary>
+        /// Converts this split's amount to the target currency. Uses the implicit transaction
+        /// exchange rate if it can be inferred from the splits of the transaction.
+        /// Otherwise uses <see cref="GncAmount.ConvertTo()"/>.
+        /// </summary>
+        public GncAmount ConvertAmount(GncCommodity toCommodity)
+        {
+            return Transaction.ConvertAmount(Amount, toCommodity);
         }
     }
 

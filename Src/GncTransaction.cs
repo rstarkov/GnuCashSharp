@@ -8,7 +8,7 @@ using RT.Util;
 
 namespace GnuCashSharp
 {
-    public class GncTransaction: IComparable<GncTransaction>
+    public class GncTransaction : IComparable<GncTransaction>
     {
         private GncBook _book;
         private string _guid;
@@ -106,6 +106,32 @@ namespace GnuCashSharp
                 return res;
             res = this._dateEntered.CompareTo(other._dateEntered);
             return res;
+        }
+
+        /// <summary>
+        /// Converts an amount to the target currency. Uses the implicit transaction
+        /// exchange rate if it can be inferred from the splits of the transaction.
+        /// Otherwise uses <see cref="GncAmount.ConvertTo()"/>.
+        /// </summary>
+        public GncAmount ConvertAmount(GncAmount amount, GncCommodity toCommodity)
+        {
+            if (amount.Commodity == toCommodity)
+                return amount;
+            if (amount.Quantity == 0)
+                return new GncAmount(0, toCommodity, amount.Timepoint);
+            var trnCmdties = _splits.Values.Select(s => s.Commodity); // note that duplicates are not eliminated
+            if (trnCmdties.Contains(toCommodity) && trnCmdties.All(c => c == toCommodity || c == amount.Commodity))
+            {
+                // Use the transaction exchange rate for the conversion
+                var splitSrcTotal = _splits.Values.Where(s => s.Commodity == amount.Commodity).Sum(s => s.Quantity);
+                var splitTgtTotal = _splits.Values.Where(s => s.Commodity == toCommodity).Sum(s => s.Quantity);
+                return new GncAmount(Math.Sign(amount.Quantity) * Math.Abs(amount.Quantity / splitSrcTotal * splitTgtTotal), toCommodity, amount.Timepoint);
+            }
+            else
+            {
+                // Fall back onto the exchange rates register
+                return amount.ConvertTo(toCommodity);
+            }
         }
     }
 }

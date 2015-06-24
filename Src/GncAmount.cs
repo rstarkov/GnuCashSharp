@@ -24,6 +24,11 @@ namespace GnuCashSharp
                 throw new RTException("The DateTime passed to GncAmount constructor must be a UTC DateTime.");
         }
 
+        public override string ToString()
+        {
+            return string.Format("{0}: {1:0.00} on {2}", Commodity, Quantity, Timepoint.ToShortDateString());
+        }
+
         /// <summary>
         /// Gets the quantity of the <see cref="Commodity"/> represented by this instance.
         /// </summary>
@@ -56,16 +61,6 @@ namespace GnuCashSharp
             decimal fromRate = _commodity.IsBaseCurrency ? 1m : _commodity.ExRate.Get(_timepoint, GncInterpolation.Linear);
             decimal toRate = toCommodity.IsBaseCurrency ? 1m : toCommodity.ExRate.Get(_timepoint, GncInterpolation.Linear);
             return new GncAmount(_quantity * fromRate / toRate, toCommodity, _timepoint);
-        }
-
-        /// <summary>
-        /// Converts this amount to an amount of the same commodity at a different point in time,
-        /// taking present-value effects into account.
-        /// <param name="rate">The rate of appreciation, p.a.</param>
-        /// </summary>
-        public GncAmount ConvertTo(DateTime presentTime, double rate)
-        {
-            throw new NotImplementedException();
         }
     }
 }

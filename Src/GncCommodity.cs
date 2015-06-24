@@ -32,6 +32,11 @@ namespace GnuCashSharp
             _identifier = MakeIdentifier(_space, _name);
         }
 
+        public override string ToString()
+        {
+            return Identifier;
+        }
+
         public GncBook Book
         {
             get { return Book; }
