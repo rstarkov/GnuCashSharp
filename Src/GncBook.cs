@@ -303,7 +303,8 @@ namespace GnuCashSharp
                 {
                     if ((split.Value == 0) != (split.Quantity == 0))
                     {
-                        _session.Warn("Split with a zero or infinite exchange rate: " + getSplitDesc(split));
+                        if (split.Value >= 1 || split.Quantity >= 1)
+                            _session.Warn("Split with a zero or infinite exchange rate: " + getSplitDesc(split));
                         continue;
                     }
                     if (split.Value == 0)
