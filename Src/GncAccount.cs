@@ -126,17 +126,12 @@ namespace GnuCashSharp
             }
         }
 
-        public decimal GetBalance(DateTime asOf, bool includeSubaccts, GncCommodity cmdty)
+        public GncAmount GetBalance(DateTime asOf, bool includeSubaccts)
         {
             decimal total = 0;
-            foreach (var split in EnumSplits(false).Where(spl => spl.Transaction.DatePosted <= asOf))
-                total += split.ConvertAmount(cmdty).Quantity;
-            if (includeSubaccts)
-            {
-                foreach (var subacct in EnumChildren())
-                    total += subacct.GetBalance(asOf, true, cmdty);
-            }
-            return total;
+            foreach (var split in EnumSplits(includeSubaccts).Where(spl => spl.Transaction.DatePosted <= asOf))
+                total += split.Quantity;
+            return new GncAmount(total, Commodity, asOf);
         }
 
         public decimal GetTotal(DateInterval interval, bool includeSubaccts, GncCommodity cmdty)
