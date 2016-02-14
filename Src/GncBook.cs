@@ -223,7 +223,7 @@ namespace GnuCashSharp
                 var suspicious = from p in cmdty.ExRate.ConsecutivePairs(false)
                                  let r1 = p.Item1
                                  let r2 = p.Item2
-                                 let ratio = Math.Max(r1.Value, 1 / r2.Value) / Math.Min(r1.Value, 1 / r2.Value)
+                                 let ratio = Ut.OnException(() => Math.Max(r1.Value, 1 / r2.Value) / Math.Min(r1.Value, 1 / r2.Value), (DivideByZeroException e) => 0m)
                                  where ratio < 1.1m
                                  select new { r1, r2 };
                 var surrounded = suspicious.ConsecutivePairs(false)
