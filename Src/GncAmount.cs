@@ -17,6 +17,8 @@ namespace GnuCashSharp
 
         public GncAmount(decimal quantity, GncCommodity commodity, DateTime timepoint)
         {
+            if (commodity == null)
+                throw new ArgumentNullException("commodity");
             _quantity = quantity;
             _commodity = commodity;
             _timepoint = timepoint;

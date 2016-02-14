@@ -29,6 +29,8 @@ namespace GnuCashSharp
             _guid = xml.ChkElement(GncName.Act("id")).Value;
             _parentGuid = xml.ValueOrDefault(GncName.Act("parent"), (string) null);
             _commodity = book.GetCommodity(GncCommodity.MakeIdentifier(xml.Element(GncName.Act("commodity"))));
+            if (_commodity == null && xml.Element(GncName.Act("type"))?.Value == "ROOT")
+                _commodity = _book.BaseCurrency;
             string scu = xml.ValueOrDefault(GncName.Act("commodity-scu"), "1");
             _commodityDecimals = scu.Count(c => c == '0');
             if (scu != "1" + new string('0', _commodityDecimals))
