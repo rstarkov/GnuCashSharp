@@ -324,7 +324,7 @@ namespace GnuCashSharp
                         var actualExRate = split.Value / split.Quantity;
                         if ((expectedExRate < 1) != (actualExRate < 1) && Math.Max(expectedExRate, 1 / expectedExRate) > 1.1m)
                         {
-                            _session.Warn("Split with a likely inverse exchange rate: " + getSplitDesc(split));
+                            _session.Warn($"Split with a suspicious exchange rate: expected {expectedExRate:0.00##} {trn.Commodity}/{split.Commodity}, actual {actualExRate:0.00##}, " + getSplitDesc(split));
                             continue;
                         }
                         // Too sensitive, but worth enabling with support for some sort of an "ignore" feature.
