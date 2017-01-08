@@ -41,8 +41,15 @@ namespace GnuCashSharp
             _commodity = _book.GetCommodity(GncCommodity.MakeIdentifier(xml.ChkElement(GncName.Trn("currency"))));
             foreach (var el in xml.ChkElement(GncName.Trn("splits")).Elements(GncName.Trn("split")))
             {
-                GncSplit split = new GncSplit(this, el);
-                _splits.Add(split.Guid, split);
+                try
+                {
+                    GncSplit split = new GncSplit(this, el);
+                    _splits.Add(split.Guid, split);
+                }
+                catch (Exception e)
+                {
+                    throw new Exception($"Could not read split for transaction: {_datePosted}, descr {_description}, {e.Message} ({_guid})", e);
+                }
             }
         }
 

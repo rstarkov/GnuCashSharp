@@ -33,10 +33,17 @@ namespace GnuCashSharp
         {
             _guid = xml.ChkElement(GncName.Split("id")).Value;
             //_reconciled = xml.ChkElement(GncName.Split("reconciled-state")).Value;
-            _value = xml.ChkElement(GncName.Split("value")).Value.ToGncDecimal();
-            _quantity = xml.ChkElement(GncName.Split("quantity")).Value.ToGncDecimal();
             _accountGuid = xml.ChkElement(GncName.Split("account")).Value;
             _memo = xml.ValueOrDefault(GncName.Split("memo"), (string) null);
+            try
+            {
+                _value = xml.ChkElement(GncName.Split("value")).Value.ToGncDecimal();
+                _quantity = xml.ChkElement(GncName.Split("quantity")).Value.ToGncDecimal();
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"Could not read quantity for split {_guid}, account {_accountGuid}: {e.Message}", e);
+            }
         }
 
         public GncTransaction Transaction

@@ -64,12 +64,16 @@ namespace GnuCashSharp
                     var ccy = new GncCommodity(null, priceXml.ChkElement(GncName.Price("currency")));
                     DateTime timepoint = GncUtil.ParseGncDate(priceXml.ChkElement(GncName.Price("time")).ChkElement(GncName.Ts("date")).Value);
                     string source = priceXml.ChkElement(GncName.Price("source")).Value;
-                    if (priceXml.ChkElement(GncName.Price("value")).Value == "1/0")
+                    decimal value;
+                    try
                     {
-                        _session.Warn("Ignoring commodity price {0}/{1}, on {2}, source {3}, because the price is 1/0 (bug in GnuCash)".Fmt(cmdty.Identifier, ccy.Identifier, timepoint.ToShortDateString(), source));
+                        value = priceXml.ChkElement(GncName.Price("value")).Value.ToGncDecimal();
+                    }
+                    catch (Exception e)
+                    {
+                        _session.Warn($"Could not read commodity price {cmdty.Identifier}/{ccy.Identifier}, on {timepoint.ToShortDateString()}, source {source}: {e.Message}");
                         continue;
                     }
-                    decimal value = priceXml.ChkElement(GncName.Price("value")).Value.ToGncDecimal();
 
                     if (!_commodities.ContainsKey(cmdty.Identifier))
                         _commodities.Add(cmdty.Identifier, new GncCommodity(this, identifier: cmdty.Identifier, name: cmdty.Identifier));
