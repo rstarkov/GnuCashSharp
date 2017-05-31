@@ -64,5 +64,19 @@ namespace GnuCashSharp
             decimal toRate = toCommodity.IsBaseCurrency ? 1m : toCommodity.ExRate.Get(_timepoint, GncInterpolation.Linear);
             return new GncAmount(_quantity * fromRate / toRate, toCommodity, _timepoint);
         }
+
+        public static GncAmount operator +(GncAmount amt1, GncAmount amt2)
+        {
+            if (amt1.Commodity != amt2.Commodity)
+                throw new InvalidOperationException($"Cannot add amounts in different commodities ({amt1.Commodity} and {amt2.Commodity}). Use ConvertTo.");
+            if (amt1.Timepoint != amt2.Timepoint)
+                throw new InvalidOperationException($"Cannot add amounts at different points in time ({amt1.Timepoint} and {amt2.Timepoint}). Cast to decimal to strip the date.");
+            return new GncAmount(amt1.Quantity + amt2.Quantity, amt1.Commodity, amt1.Timepoint);
+        }
+
+        public static implicit operator decimal(GncAmount amt)
+        {
+            return amt.Quantity;
+        }
     }
 }
