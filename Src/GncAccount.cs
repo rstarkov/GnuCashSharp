@@ -132,7 +132,7 @@ namespace GnuCashSharp
         {
             decimal total = 0;
             foreach (var split in EnumSplits(includeSubaccts).Where(spl => spl.Transaction.DatePosted <= asOf))
-                total += split.Quantity;
+                total += split.ConvertAmount(Commodity).Quantity;
             return new GncAmount(total, Commodity, asOf);
         }
 
