@@ -398,7 +398,8 @@ namespace GnuCashSharp
         public IEnumerable<GncCommodity> EnumCommodities()
         {
             foreach (var cmdty in _commodities.Values)
-                yield return cmdty;
+                if (cmdty.Identifier != "template:template")
+                    yield return cmdty;
         }
 
         public GncCommodity GetCommodity(string identifier)
