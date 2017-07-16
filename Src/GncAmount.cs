@@ -6,6 +6,11 @@ using RT.Util.Collections;
 
 namespace GnuCashSharp
 {
+    /// <summary>
+    ///     Represents an amount of a specific commodity with an optional point in time. See Remarks.</summary>
+    /// <remarks>
+    ///     As this is a value type, it has a default constructor which will create an instance with a null commodity.
+    ///     Arithmetic operations have special support for this value, treating it as commodity-agnostic zero value.</remarks>
     public struct GncCommodityAmount
     {
         public GncCommodityAmount(decimal quantity, GncCommodity commodity, DateTime? timepoint = null)
@@ -137,6 +142,15 @@ namespace GnuCashSharp
         }
     }
 
+    /// <summary>
+    ///     Represents an amount of money consisting of multiple commodities, optionally at a specific point in time. See
+    ///     Remarks.</summary>
+    /// <remarks>
+    ///     When enumerating this type, only non-zero commodities are enumerated. Because of this, the <see cref="Count"/>
+    ///     property is zero if and only if all commodities are zero. This type also supports comparisons to the number 0, but
+    ///     not to any other numbers. Comparison operators ignore time point where present. Arithmetic operators create a new
+    ///     instance for the result, which should be avoided in performance-sensitive loops; use in-place operations in such
+    ///     code.</remarks>
     public class GncMultiAmount : IReadOnlyCollection<GncCommodityAmount>, IEquatable<GncMultiAmount>
     {
         /// <summary>
@@ -293,12 +307,16 @@ namespace GnuCashSharp
             return result;
         }
 
+        /// <summary>Applies the specified function to the quantity of each commodity in this <see cref="GncMultiAmount"/>.</summary>
         public void ApplyInplace(Func<decimal, decimal> func)
         {
             foreach (var k in _commodities.Keys.ToList())
                 _commodities[k] = func(_commodities[k]);
         }
 
+        /// <summary>
+        ///     Returns a new <see cref="GncMultiAmount"/> with the specified function applied to the quantity of each
+        ///     commodity in this <see cref="GncMultiAmount"/>.</summary>
         public GncMultiAmount Apply(Func<decimal, decimal> func)
         {
             var result = Clone();
