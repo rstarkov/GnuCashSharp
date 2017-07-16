@@ -34,8 +34,8 @@ namespace GnuCashSharp
             : this(book)
         {
             _guid = xml.ChkElement(GncName.Trn("id")).Value;
-            _datePosted = DateTimeOffset.Parse(xml.ChkElement(GncName.Trn("date-posted")).ChkElement(GncName.Ts("date")).Value).Date;
-            _dateEntered = DateTimeOffset.Parse(xml.ChkElement(GncName.Trn("date-entered")).ChkElement(GncName.Ts("date")).Value);
+            _datePosted = DateTimeOffset.Parse(xml.ChkElement(GncName.Trn("date-posted")).ChkElement(GncName.Ts("date")).Value).Date.AssumeUtc();
+            _dateEntered = DateTimeOffset.Parse(xml.ChkElement(GncName.Trn("date-entered")).ChkElement(GncName.Ts("date")).Value).UtcDateTime;
             _num = xml.ValueOrDefault(GncName.Trn("num"), "");
             _description = xml.ChkElement(GncName.Trn("description")).Value;
             _commodity = _book.GetCommodity(GncCommodity.MakeIdentifier(xml.ChkElement(GncName.Trn("currency"))));

@@ -259,9 +259,9 @@ namespace GnuCashSharp
             foreach (var trn in _transactions.Values)
             {
                 var getAccounts = Ut.Lambda(() => trn.EnumSplits().Select(s => s.Account.Path(":")).Order().JoinString(", ", "\"", "\"", " and "));
-                var getTrnDesc = Ut.Lambda(() => "date {0}, descr \"{1}\", accounts {2}, guid {3}".Fmt(trn.DatePosted.ToLocalTime().ToShortDateString(), trn.Description, getAccounts(), trn.Guid));
+                var getTrnDesc = Ut.Lambda(() => "date {0}, descr \"{1}\", accounts {2}, guid {3}".Fmt(trn.DatePosted.ToShortDateString(), trn.Description, getAccounts(), trn.Guid));
                 var getSplitDesc = Ut.Lambda((GncSplit split) => "date {0}, descr \"{1}\", account {2}, guid {3}".Fmt(
-                    trn.DatePosted.ToLocalTime().ToShortDateString(), trn.Description + (string.IsNullOrWhiteSpace(split.Memo) ? "" : (" / " + split.Memo)), split.Account.Path(":"), split.Guid));
+                    trn.DatePosted.ToShortDateString(), trn.Description + (string.IsNullOrWhiteSpace(split.Memo) ? "" : (" / " + split.Memo)), split.Account.Path(":"), split.Guid));
 
                 // The total value in the transaction currency must add up to zero
                 if (trn.EnumSplits().Sum(s => s.Value) != 0)
@@ -322,8 +322,8 @@ namespace GnuCashSharp
                         }
                         if (anySuspiciousExchangeRates)
                             continue;
-                        var expectedExRateFrom = trn.Commodity.IsBaseCurrency ? 1m : trn.Commodity.ExRate.Get(trn.DatePosted.ToUniversalTime(), GncInterpolation.Linear);
-                        var expectedExRateTo = split.Commodity.IsBaseCurrency ? 1m : split.Commodity.ExRate.Get(trn.DatePosted.ToUniversalTime(), GncInterpolation.Linear);
+                        var expectedExRateFrom = trn.Commodity.IsBaseCurrency ? 1m : trn.Commodity.ExRate.Get(trn.DatePosted, GncInterpolation.Linear);
+                        var expectedExRateTo = split.Commodity.IsBaseCurrency ? 1m : split.Commodity.ExRate.Get(trn.DatePosted, GncInterpolation.Linear);
                         var expectedExRate = expectedExRateTo / expectedExRateFrom;
                         var actualExRate = split.Value / split.Quantity;
                         if ((expectedExRate < 1) != (actualExRate < 1) && Math.Max(expectedExRate, 1 / expectedExRate) > 1.1m)
