@@ -322,6 +322,8 @@ namespace GnuCashSharp
                         }
                         if (anySuspiciousExchangeRates)
                             continue;
+                        if (trn.Commodity.ExRate.Count == 0 || split.Commodity.ExRate.Count == 0)
+                            continue;
                         var expectedExRateFrom = trn.Commodity.IsBaseCurrency ? 1m : trn.Commodity.ExRate.Get(trn.DatePosted, GncInterpolation.Linear);
                         var expectedExRateTo = split.Commodity.IsBaseCurrency ? 1m : split.Commodity.ExRate.Get(trn.DatePosted, GncInterpolation.Linear);
                         var expectedExRate = expectedExRateTo / expectedExRateFrom;

@@ -12,6 +12,8 @@ namespace GnuCashSharp
     {
         private SortedList<DateTime, decimal> _data = new SortedList<DateTime, decimal>();
 
+        public int Count => _data.Count;
+
         public decimal this[DateTime time]
         {
             get
