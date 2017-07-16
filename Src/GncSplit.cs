@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using RT.Util;
@@ -97,10 +98,7 @@ namespace GnuCashSharp
             get { return _memo; }
         }
 
-        public GncAmount Amount
-        {
-            get { return new GncAmount(_quantity, Commodity, _transaction.DatePosted.ToUniversalTime()); }
-        }
+        public GncCommodityAmount Amount => new GncCommodityAmount(_quantity, Commodity, _transaction.DatePosted);
 
         public decimal AccountBalanceAfter
         {
@@ -167,9 +165,25 @@ namespace GnuCashSharp
         /// exchange rate if it can be inferred from the splits of the transaction.
         /// Otherwise uses <see cref="GncAmount.ConvertTo()"/>.
         /// </summary>
-        public GncAmount ConvertAmount(GncCommodity toCommodity)
+        public GncCommodityAmount AmountConverted(GncCommodity toCommodity)
         {
-            return Transaction.ConvertAmount(Amount, toCommodity);
+            if (Commodity == toCommodity)
+                return Amount;
+            if (Quantity == 0)
+                return new GncCommodityAmount(0, toCommodity, _transaction.DatePosted);
+            var trnCmdties = _transaction.EnumSplits().Select(s => s.Commodity); // note that duplicates are not eliminated
+            if (trnCmdties.Contains(toCommodity) && trnCmdties.All(c => c == toCommodity || c == Commodity))
+            {
+                // Use the transaction exchange rate for the conversion
+                var splitSrcTotal = _transaction.EnumSplits().Where(s => s.Commodity == Commodity).Sum(s => s.Quantity);
+                var splitTgtTotal = _transaction.EnumSplits().Where(s => s.Commodity == toCommodity).Sum(s => s.Quantity);
+                return new GncCommodityAmount(Math.Sign(Quantity) * Math.Abs(Quantity / splitSrcTotal * splitTgtTotal), toCommodity, _transaction.DatePosted);
+            }
+            else
+            {
+                // Fall back onto the exchange rates register
+                return Amount.ConvertTo(toCommodity);
+            }
         }
     }
 

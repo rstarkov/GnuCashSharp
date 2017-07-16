@@ -128,25 +128,53 @@ namespace GnuCashSharp
             }
         }
 
-        public GncAmount GetBalance(DateTime asOf, bool includeSubaccts)
+        public GncCommodityAmount GetBalance(DateTime asOf)
         {
-            decimal total = 0;
-            foreach (var split in EnumSplits(includeSubaccts).Where(spl => spl.Transaction.DatePosted <= asOf))
-                total += split.ConvertAmount(Commodity).Quantity;
-            return new GncAmount(total, Commodity, asOf);
+            var result = new GncCommodityAmount(0, Commodity);
+            foreach (var split in EnumSplits(false).Where(spl => spl.Transaction.DatePosted <= asOf))
+                result += split.Amount;
+            return result.WithTimepoint(asOf);
         }
 
-        public decimal GetTotal(DateInterval interval, bool includeSubaccts, GncCommodity cmdty)
+        public GncMultiAmount GetBalanceWithSubaccounts(DateTime asOf)
         {
-            decimal total = 0;
+            var result = new GncMultiAmount();
+            foreach (var split in EnumSplits(true).Where(spl => spl.Transaction.DatePosted <= asOf))
+                result.AddInplace(split.Amount);
+            result.Timepoint = asOf;
+            return result;
+        }
+
+        public GncCommodityAmount GetBalanceConverted(DateTime asOf, bool withSubaccts, GncCommodity convertTo)
+        {
+            var result = new GncCommodityAmount(0, convertTo);
+            foreach (var split in EnumSplits(withSubaccts).Where(spl => spl.Transaction.DatePosted <= asOf))
+                result += split.AmountConverted(convertTo);
+            return result.WithTimepoint(asOf);
+        }
+
+        public GncCommodityAmount GetTotal(DateInterval interval)
+        {
+            var result = new GncCommodityAmount(0, Commodity);
             foreach (var split in EnumSplits(false).Where(spl => interval.Contains(spl.Transaction.DatePosted)))
-                total += split.ConvertAmount(cmdty).Quantity;
-            if (includeSubaccts)
-            {
-                foreach (var subacct in EnumChildren())
-                    total += subacct.GetTotal(interval, true, cmdty);
-            }
-            return total;
+                result += split.Amount;
+            return result;
+        }
+
+        public GncMultiAmount GetTotalWithSubaccounts(DateInterval interval)
+        {
+            var result = new GncMultiAmount();
+            foreach (var split in EnumSplits(true).Where(spl => interval.Contains(spl.Transaction.DatePosted)))
+                result.AddInplace(split.Amount);
+            return result;
+        }
+
+        public GncCommodityAmount GetTotalConverted(DateInterval interval, bool withSubaccts, GncCommodity convertTo)
+        {
+            var result = new GncCommodityAmount(0, convertTo);
+            foreach (var split in EnumSplits(withSubaccts).Where(spl => interval.Contains(spl.Transaction.DatePosted)))
+                result += split.AmountConverted(convertTo);
+            return result;
         }
 
         public string Path(string separator)
