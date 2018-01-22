@@ -181,6 +181,8 @@ namespace GnuCashSharp
 
         public static implicit operator GncMultiAmount(GncCommodityAmount amt)
         {
+            if (amt.Quantity == 0)
+                return new GncMultiAmount { Timepoint = amt.Timepoint };
             return new GncMultiAmount(amt.Quantity, amt.Commodity, amt.Timepoint);
         }
 
