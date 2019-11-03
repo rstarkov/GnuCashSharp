@@ -68,6 +68,8 @@ namespace GnuCashSharp
                     try
                     {
                         value = priceXml.ChkElement(GncName.Price("value")).Value.ToGncDecimal();
+                        if (value == 0)
+                            continue; // GnuCash sometimes adds 0 for prices
                     }
                     catch (Exception e)
                     {
