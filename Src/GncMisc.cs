@@ -74,8 +74,8 @@ namespace GnuCashSharp
 
         public DateInterval(DateTime start, DateTime end)
         {
-            _start = start;
-            _end = end;
+            _start = new DateTime(start.Year, start.Month, start.Day, 0, 0, 0, DateTimeKind.Utc);
+            _end = new DateTime(end.Year, end.Month, end.Day, 0, 0, 0, DateTimeKind.Utc);
         }
 
         public DateInterval(int startYear, int startMonth, int startDay, int endYear, int endMonth, int endDay)
@@ -140,6 +140,7 @@ namespace GnuCashSharp
 
         public bool Contains(DateTime date)
         {
+            date = new DateTime(date.Year, date.Month, date.Day, 0, 0, 0, DateTimeKind.Utc);
             return date >= _start && date <= _end;
         }
 
