@@ -28,7 +28,12 @@ namespace GnuCashSharp
         /// </summary>
         public static DateTime ParseGncDate(string value)
         {
-            return new DateTime(DateTimeOffset.Parse(value).Date.Ticks, DateTimeKind.Utc);
+            var d = DateTimeOffset.Parse(value);
+            if (d.Hour >= 20)
+                d = d.AddHours(12).Date;
+            else
+                d = d.Date;
+            return new DateTime(d.Ticks, DateTimeKind.Utc);
         }
 
         public static DateTime StartOfMonth(this DateTime date)
