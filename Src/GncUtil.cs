@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using RT.Util.Collections;
+using System.Xml.Linq;
+using RT.Serialization;
 using RT.Util.ExtensionMethods;
 
 namespace GnuCashSharp
@@ -49,6 +47,20 @@ namespace GnuCashSharp
         public static DateTime AssumeUtc(this DateTime dt)
         {
             return new DateTime(dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, dt.Second, dt.Millisecond, DateTimeKind.Utc);
+        }
+
+        /// <summary>
+        ///     Returns the value of this element, converted to type T. If the element does not exist returns the default
+        ///     value. If the element's value cannot be converted, throws an exception.</summary>
+        public static T ValueOrDefault<T>(this XElement element, XName name, T defaultValue)
+        {
+            // Copied from RT.Util
+            XElement el = element.Element(name);
+            if (el == null)
+                return defaultValue;
+            else
+                try { return ExactConvert.To<T>(el.Value); }
+                catch (ExactConvertException E) { throw new InvalidOperationException(("Element \"{0}/{1}\", when present, must contain a value convertible to a certain type: " + E.Message).Fmt(element.Path(), name)); }
         }
     }
 }

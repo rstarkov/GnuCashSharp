@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
-using RT.Util;
 using RT.Util.ExtensionMethods;
 
 namespace GnuCashSharp
@@ -191,7 +190,7 @@ namespace GnuCashSharp
     /// Thrown by <see cref="GncSplit.Balsnap"/> when the split is a balance snapshot but
     /// the snapshotted value cannot be parsed.
     /// </summary>
-    public class GncBalsnapParseException : RTException
+    public class GncBalsnapParseException : Exception
     {
         public GncBalsnapParseException(GncSplit split, string offendingValue)
         {

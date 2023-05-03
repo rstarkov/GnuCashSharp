@@ -23,7 +23,7 @@ namespace GnuCashSharp
             set
             {
                 if (time.Kind != DateTimeKind.Utc)
-                    throw new RTException("DateTime passed to GncTimeSeries[] must be a UTC time.");
+                    throw new InternalErrorException("DateTime passed to GncTimeSeries[] must be a UTC time.");
                 if (_data.ContainsKey(time))
                     _data[time] = value;
                 else
@@ -51,7 +51,7 @@ namespace GnuCashSharp
         public decimal Get(DateTime time, GncInterpolation interpolation)
         {
             if (time.Kind != DateTimeKind.Utc)
-                throw new RTException("DateTime passed to GncTimeSeries.Get must be a UTC time.");
+                throw new InternalErrorException("DateTime passed to GncTimeSeries.Get must be a UTC time.");
 
             if (_data.Count == 0)
                 throw new InvalidOperationException("Cannot Get a value from an empty GncTimeSeries.");

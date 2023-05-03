@@ -1,12 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using RT.Util;
 
 namespace GnuCashSharp
 {
-    public class GncException: RTException
+    public class GncException: Exception
     {
         public GncException(string message)
             : base(message)

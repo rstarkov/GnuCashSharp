@@ -419,7 +419,7 @@ namespace GnuCashSharp
                 var next = index <= 0 ? remains : remains.Substring(0, index);
                 remains = index <= 0 ? "" : remains.Substring(next.Length + 1);
                 try { cur = cur.EnumChildren().First(acct => acct.Name == next); }
-                catch { throw new RTException("Account not found: \"{0}\", while retrieving \"{1}\".".Fmt(next, path)); }
+                catch { throw new InternalErrorException("Account not found: \"{0}\", while retrieving \"{1}\".".Fmt(next, path)); }
             }
             return cur;
         }
