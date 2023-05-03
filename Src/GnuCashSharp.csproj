@@ -1,13 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net4.8</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <Nullable>disable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="RT.Serialization" Version="2.0.1737" />
-    <PackageReference Include="RT.Util.Core" Version="2.0.1737" />
+    <PackageReference Include="RT.Serialization" Version="2.0.1739" />
+    <PackageReference Include="RT.Util.Core" Version="2.0.1739" />
   </ItemGroup>
 
 </Project>
