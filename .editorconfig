@@ -160,7 +160,7 @@ csharp_indent_nested_for_stmt = true
 csharp_indent_nested_foreach_stmt = true
 
 # Space preferences
-csharp_space_after_cast = false
+csharp_space_after_cast = true
 csharp_space_after_colon_in_inheritance_clause = true
 csharp_space_after_comma = true
 csharp_space_after_dot = false
@@ -291,6 +291,9 @@ dotnet_diagnostic.ide0042.severity = none
 
 # CS1998: Async method lacks 'await' operators and will run synchronously
 dotnet_diagnostic.cs1998.severity = none
+
+# CS8981: The type name 'info' only contains lower-cased ascii characters - we'll fix it if that happens
+dotnet_diagnostic.cs8981.severity = none
 
 # Rider: Possible 'null' assignment to non-nullable entity (triggers even in nullable:disable contexts)
 resharper_assign_null_to_not_null_attribute_highlighting = none
