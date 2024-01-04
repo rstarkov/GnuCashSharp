@@ -1,4 +1,4 @@
-using System.Xml.Linq;
+﻿using System.Xml.Linq;
 using RT.Util.ExtensionMethods;
 
 namespace GnuCashSharp;
@@ -76,6 +76,6 @@ public class GncCommodity
 
     public static string MakeIdentifier(string space, string name)
     {
-        return space == "ISO4217" ? name : (space + ":" + name);
+        return (space == "ISO4217" || space == "CURRENCY") ? name : (space + ":" + name);
     }
 }
