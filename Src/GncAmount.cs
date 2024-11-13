@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using RT.Util.Collections;
 
 namespace GnuCashSharp;
@@ -332,5 +332,10 @@ public class GncMultiAmount : IReadOnlyCollection<GncCommodityAmount>, IEquatabl
         foreach (var amt in this)
             result += amt.ConvertTo(toCommodity);
         return result;
+    }
+
+    public override string ToString()
+    {
+        return string.Join(" + ", _commoditiesEnum);
     }
 }
